@@ -2,12 +2,15 @@ module Main exposing (main)
 
 import Array
 import Browser
-import Html exposing (..)
-import Html.Attributes exposing (action, href, id, type_)
-import Html.Events exposing (onClick, onInput, onSubmit)
+import Css exposing (absolute, after, alignItems, auto, backgroundColor, border, border3, borderBox, borderRadius, bottom, boxSizing, center, color, cursor, display, displayFlex, fixed, flex, height, hex, hidden, int, justifyContent, left, linearGradient, none, num, opacity, overflowY, padding, padding2, pct, pointer, pointerEvents, position, property, px, right, sec, solid, textAlign, toTop, top, visibility, visible, width, zIndex)
+import Css.Transitions as Transitions exposing (background, transition)
+import Html.Styled as Html exposing (..)
+import Html.Styled.Attributes exposing (action, css, href, id, type_)
+import Html.Styled.Events exposing (onClick, onInput, onSubmit)
 import Http
+import Icon as Icon
 import Json.Decode as Decode exposing (Decoder, int, list, string)
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline as Pip exposing (required)
 import Random
 import RemoteData exposing (RemoteData, WebData)
 
@@ -30,6 +33,7 @@ type alias Model =
     , startGame : Bool
     , client : Client
     , sendClient : WebData Client
+    , isActiveModal : Bool
     }
 
 
@@ -40,6 +44,7 @@ init _ =
       , startGame = False
       , client = Client "" ""
       , sendClient = RemoteData.NotAsked
+      , isActiveModal = False
       }
     , Cmd.none
     )
@@ -49,7 +54,7 @@ main : Program () Model Msg
 main =
     Browser.element
         { init = init
-        , view = view
+        , view = view >> toUnstyled
         , update = update
         , subscriptions = \_ -> Sub.none
         }
@@ -64,13 +69,14 @@ type Msg
     | SavePhone String
     | SaveName String
     | SendCreateClient
+    | ModalClose
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SendHttpRequest ->
-            ( { model | bonuses = RemoteData.Loading }, getBonusesAction )
+            ( { model | isActiveModal = True, bonuses = RemoteData.Loading }, getBonusesAction )
 
         DataReceived response ->
             ( { model | bonuses = response }, Cmd.none )
@@ -97,13 +103,28 @@ update msg model =
         DataClient response ->
             ( { model | sendClient = response }, Cmd.none )
 
+        ModalClose ->
+            ( { model | isActiveModal = False }, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
     case model.winnerBonus of
         Nothing ->
             div []
-                [ button [ onClick SendHttpRequest ]
+                [ button
+                    [ css
+                        [ position fixed
+                        , right <| px 100
+                        , bottom <| px 100
+                        , backgroundColor <| hex "#e51d16"
+                        , color <| hex "#fff"
+                        , border <| px 0
+                        , padding <| px 10
+                        , cursor pointer
+                        ]
+                    , onClick SendHttpRequest
+                    ]
                     [ text "Получить бонусы" ]
                 , viewBonusesOrError model
                 ]
@@ -177,18 +198,114 @@ viewWinnerBonus bonus =
 
 viewBonusesOrError : Model -> Html Msg
 viewBonusesOrError model =
-    case model.bonuses of
-        RemoteData.NotAsked ->
-            text ""
+    viewModal model.isActiveModal
+        (case model.bonuses of
+            RemoteData.NotAsked ->
+                text ""
 
-        RemoteData.Loading ->
-            h3 [] [ text "Загрузка..." ]
+            RemoteData.Loading ->
+                h3 [ css [ color <| hex "#fff" ] ] [ text "Загрузка..." ]
 
-        RemoteData.Success bonuses ->
-            viewBonuses bonuses
+            RemoteData.Success bonuses ->
+                viewBonuses bonuses
 
-        RemoteData.Failure httpError ->
-            viewError (buildErrorMessage httpError)
+            RemoteData.Failure httpError ->
+                viewError (buildErrorMessage httpError)
+        )
+
+
+viewModal : Bool -> Html Msg -> Html Msg
+viewModal isActive content =
+    div
+        [ css
+            [ position fixed
+            , top <| px 0
+            , left <| px 0
+            , width <| pct 100
+            , height <| pct 100
+            , property "visibility" <|
+                if isActive then
+                    "visible"
+
+                else
+                    "hidden"
+            , opacity <|
+                if isActive then
+                    num 1
+
+                else
+                    num 0
+            , property "pointer-events" <|
+                if isActive then
+                    "auto"
+
+                else
+                    "none"
+            , transition
+                [ Transitions.visibility2 0 0.3
+                , Transitions.opacity2 0.3 0
+                , Transitions.zIndex2 0 0.3
+                ]
+            , after
+                [ property "content" "''"
+                , position absolute
+                , left <| px 0
+                , bottom <| px 0
+                , width <| pct 100
+                , height <| px 60
+                , pointerEvents none
+                , property "background" "linear-gradient(to top, #34383c, rgba(52, 56, 60, 0))"
+                ]
+            ]
+        ]
+        [ div []
+            [ button
+                [ css
+                    [ position fixed
+                    , zIndex <| Css.int 1
+                    , top <| px 20
+                    , right <| pct 5
+                    , height <| px 50
+                    , width <| px 50
+                    , borderRadius <| pct 50
+                    , border3 (px 1) solid (hex "#333")
+                    , backgroundColor <| hex "#fff"
+                    , cursor <| pointer
+                    ]
+                , onClick ModalClose
+                ]
+                [ Icon.close
+                ]
+            , span
+                [ css
+                    [ position fixed
+                    , top <| px 0
+                    , left <| px 0
+                    , backgroundColor <| hex "#34383c"
+                    , width <| pct 100
+                    , height <| pct 100
+                    , zIndex <| Css.int -1
+                    ]
+                ]
+                []
+            ]
+        , div
+            [ css
+                [ height <| pct 100
+                , width <| pct 100
+                , padding <| pct 5
+                , textAlign left
+                , overflowY auto
+                , property "-webkit-font-smoothing" "antialiased"
+                , property "-webkit-font-smoothing" "grayscale"
+                , boxSizing borderBox
+                , displayFlex
+                , alignItems center
+                , justifyContent center
+                ]
+            ]
+            [ content ]
+        ]
 
 
 viewError : String -> Html Msg

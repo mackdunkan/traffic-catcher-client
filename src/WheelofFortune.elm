@@ -1,15 +1,22 @@
 module WheelofFortune exposing (..)
 
 import Browser
-import Css exposing (Style, animationDuration, animationIterationCount, animationName, border3, borderColor4, borderRadius, borderStyle, borderWidth, borderWidth4, boxShadow3, boxShadow4, deg, height, hex, infinite, int, left, num, padding4, pct, position, property, px, right, rotate, sec, solid, top, transform, transparent, width, zIndex)
-import Css.Animations as CssAnimation exposing (custom, keyframes)
+import Css exposing (Style, animationDuration, animationIterationCount, animationName, backgroundColor, backgroundImage, backgroundPosition, backgroundPosition2, border3, borderColor4, borderRadius, borderStyle, borderWidth, borderWidth4, bottom, boxShadow3, boxShadow4, center, deg, float, fontFamilies, fontSize, height, hex, infinite, int, left, maxWidth, none, nthChild, num, opacity, padding4, pct, position, property, pt, px, qt, right, rotate, sansSerif, sec, solid, top, transform, transparent, url, width, zIndex)
+import Css.Animations as CssAnimation exposing (Property, custom, keyframes)
 import Css.Global exposing (children, descendants, everything, global, selector, typeSelector)
-import Html.Styled exposing (Html, div, span, text, toUnstyled)
-import Html.Styled.Attributes exposing (css)
+import Css.Transitions exposing (background, easeInOut, transition)
+import Delay
+import Html.Styled exposing (Html, br, button, div, input, node, span, text, toUnstyled)
+import Html.Styled.Attributes exposing (css, disabled, href, placeholder, rel, style, type_, value)
+import Html.Styled.Events exposing (onClick, onInput)
 import List.Extra
+import Mask
+import PhoneNumber
+import PhoneNumber.Countries exposing (countryRU)
 import Svg.Styled as Svg exposing (svg, switch)
 import Svg.Styled.Attributes as SvgAttr
-import Tailwind.Utilities as TW
+import Tailwind.Utilities as TW exposing (rounded_full)
+import Widget
 
 
 main =
@@ -38,7 +45,7 @@ initItems =
     , Item "Шарф2" 200 200 "#eee"
     , Item "Кепка2" 200 200 "#0074ad"
     , Item "Носок2" 200 200 "#0074ad"
-    , Item "Носок2" 200 200 "#0074ad"
+    , Item "Носок3" 200 200 "#0074ad"
     ]
 
 
@@ -48,26 +55,73 @@ initItems =
 
 type alias Model =
     { items : List Item
+    , winnerID : Int
+    , isStartGame : Bool
+    , phone : String
+    , errorPhone : Bool
+    , step : Int
+    , isOpen : Bool
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { items = initItems
+      , winnerID = 4
+      , isStartGame = False
+      , phone = ""
+      , errorPhone = False
+      , step = 1
+      , isOpen = False
       }
     , Cmd.none
     )
 
 
 type Msg
-    = Run
+    = StartFortune
+    | Message
+    | InputtedPhone String
+    | Modal Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Run ->
-            ( model, Cmd.none )
+        StartFortune ->
+            if validNorwegianNumber (unMask <| model.phone) then
+                ( { model | isStartGame = True, errorPhone = False, step = 2 }, Delay.after 6500 Message )
+
+            else
+                ( { model | errorPhone = True }, Cmd.none )
+
+        Message ->
+            ( { model | step = 3 }, Cmd.none )
+
+        InputtedPhone phone ->
+            ( { model | phone = Mask.number "(###) ###-####" phone }, Cmd.none )
+
+        Modal is ->
+            ( { model | isOpen = is }, Cmd.none )
+
+
+unMask : String -> String
+unMask str =
+    str
+        |> String.replace "(" ""
+        |> String.replace ")" ""
+        |> String.replace "-" ""
+        |> String.replace " " ""
+
+
+validNorwegianNumber : String -> Bool
+validNorwegianNumber number =
+    PhoneNumber.valid
+        { defaultCountry = countryRU
+        , otherCountries = []
+        , types = PhoneNumber.anyType
+        }
+        number
 
 
 
@@ -85,9 +139,71 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewWheelWrap
+    div
+        [ css
+            [ fontFamilies [ qt "IBM Plex Sans", .value sansSerif ]
+            , descendants
+                [ typeSelector "*"
+                    [ TW.box_border
+                    , TW.leading_none
+                    ]
+                ]
+            ]
         ]
+        [ node "link" [ href "https://fonts.googleapis.com/css?family=IBM+Plex+Sans:500,600&display=swap", rel "stylesheet" ] []
+        , viewBonusesGame model
+        , div
+            [ css
+                [ TW.fixed
+                , TW.inset_y_0
+                , TW.w_full
+                , maxWidth <| px 660
+                , transition
+                    [ Css.Transitions.left 1000
+                    , Css.Transitions.transform3 500 0 easeInOut
+                    ]
+                ]
+            , if model.isOpen then
+                style "left" "0"
+
+              else
+                style "left" "-660px"
+            ]
+            [ Widget.viewWidgetWrap <| viewWheelWrap model ]
+        ]
+
+
+viewBonusesGame : Model -> Html Msg
+viewBonusesGame model =
+    case model.isOpen of
+        True ->
+            div [] []
+
+        False ->
+            viewButtonBonusGame model
+
+
+viewButtonBonusGame : Model -> Html Msg
+viewButtonBonusGame model =
+    button
+        [ css
+            [ TW.fixed
+            , zIndex <| int 999999
+            , cubeCss px 100
+            , TW.cursor_pointer
+            , left <| px 10
+            , bottom <| px -30
+            , backgroundImage (url "img/gift.png")
+            , TW.bg_center
+            , TW.bg_contain
+            , TW.origin_bottom_right
+            , TW.bg_no_repeat
+            , TW.border_0
+            , backgroundColor transparent
+            ]
+        , onClick <| Modal True
+        ]
+        []
 
 
 viewWheelWrapSvg : Float -> Html Msg
@@ -111,27 +227,196 @@ viewSegmentSvg s =
 --- HTML
 
 
-viewWheelWrap : Html Msg
-viewWheelWrap =
+viewWheelWrap : Model -> Html Msg
+viewWheelWrap model =
+    let
+        leftWrap : Html Msg -> Html Msg
+        leftWrap content =
+            div [ css [ TW.absolute, TW.inset_y_0, TW.left_0, TW.flex, TW.items_center, TW.text_center, zIndex <| int 1 ] ] [ content ]
+
+        rightWrap : Html Msg -> Html Msg
+        rightWrap content =
+            div [ css [ TW.absolute, TW.inset_y_0, left <| px 310, right <| px 50, TW.flex, TW.items_center, TW.text_left, zIndex <| int 2, maxWidth <| px 400 ] ] [ content ]
+    in
+    div []
+        [ leftWrap
+            (div
+                [ css
+                    [ TW.relative
+                    , cubeCss px 474
+                    , left <| px -237
+                    , TW.bg_gray_400
+                    , TW.rounded_full
+                    ]
+                ]
+                [ viewWheelCenter
+                , viewWheelArrow
+                , viewWheel model
+                ]
+            )
+        , rightWrap <| viewFormAndStepClient model
+        ]
+
+
+viewFormAndStepClient : Model -> Html Msg
+viewFormAndStepClient model =
+    case model.step of
+        1 ->
+            div [ css [ TW.grid, TW.gap_4 ] ]
+                [ viewTitle "Крутите \nколесо!"
+                , viewDesc "Введите свой номер телефона, \nчтобы выиграть приз!"
+                , div [ css [ TW.grid, TW.gap_3, TW.grid_cols_2 ] ]
+                    [ div [ css [ TW.col_span_2, TW.flex, TW.items_center ] ]
+                        [ div [ css [ TW.mr_2 ] ] [ text "+7" ]
+                        , input
+                            [ onInput InputtedPhone
+                            , value model.phone
+                            , type_ "text"
+                            , placeholder "Введите номер телефона"
+                            , css
+                                [ TW.w_full
+                                , height <| px 50
+                                , TW.border_0
+                                , TW.outline_none
+                                , TW.px_2
+                                , TW.text_base
+                                , fontFamilies [ qt "IBM Plex Sans", .value sansSerif ]
+                                , boolCss model.errorPhone (Css.batch [ TW.border_2, TW.border_red_700 ])
+                                ]
+                            ]
+                            []
+                        ]
+                    , button [ onClick StartFortune, css [ styleButton, backgroundColor <| hex "#252ef7" ] ] [ text "Крутить" ]
+                    , button [ onClick <| Modal False, css [ styleButton ] ] [ text "Закрыть" ]
+                    ]
+                , div [ css [ fontSize <| px 10, TW.opacity_20 ] ] [ text "Нажимая на кнопку, вы даете согласие на обработку своих персональных данных и соглашаетесь с Политикой конфиденциальности" ]
+                ]
+
+        2 ->
+            viewLoader
+
+        3 ->
+            let
+                getTitleWinnerBonus =
+                    List.Extra.getAt model.winnerID model.items
+            in
+            case getTitleWinnerBonus of
+                Just i ->
+                    div [ css [ TW.grid, TW.gap_4 ] ]
+                        [ viewTitle i.title
+                        , viewDesc "Поздравляем! \nмы скоро свяжемся с Вами!"
+                        ]
+
+                Nothing ->
+                    div [] [ viewTitle "Error" ]
+
+        _ ->
+            div [] [ text "Error" ]
+
+
+viewLoader : Html Msg
+viewLoader =
+    let
+        animation : Int -> List Style
+        animation num =
+            case num of
+                1 ->
+                    [ property "animation-iteration-count" "infinite"
+                    , animationDuration (sec 0.6)
+                    , animationName
+                        (keyframes
+                            [ ( 0, [ CssAnimation.property "transform" "scale(0)" ] )
+                            , ( 100, [ CssAnimation.property "transform" "scale(1)" ] )
+                            ]
+                        )
+                    ]
+
+                2 ->
+                    [ property "animation-iteration-count" "infinite"
+                    , animationDuration (sec 0.6)
+                    , animationName
+                        (keyframes
+                            [ ( 0, [ CssAnimation.property "transform" "translate(0,0)" ] )
+                            , ( 100, [ CssAnimation.property "transform" "translate(24px,0)" ] )
+                            ]
+                        )
+                    ]
+
+                3 ->
+                    [ property "animation-iteration-count" "infinite"
+                    , animationDuration (sec 0.6)
+                    , animationName
+                        (keyframes
+                            [ ( 0, [ CssAnimation.property "transform" "scale(1)" ] )
+                            , ( 100, [ CssAnimation.property "transform" "scale(0)" ] )
+                            ]
+                        )
+                    ]
+
+                _ ->
+                    []
+    in
     div
         [ css
             [ TW.relative
-            , cubeCss px 474
-            , TW.bg_gray_400
-            , TW.rounded_full
+            , cubeCss px 80
+            , TW.mx_auto
             , descendants
-                [ typeSelector "*"
-                    [ TW.box_border
-                    , TW.leading_none
-                    , TW.text_left
+                [ typeSelector "div"
+                    [ TW.absolute
+                    , top <| px 33
+                    , cubeCss px 13
+                    , TW.rounded_full
+                    , TW.bg_white
+                    , property "animation-timing-function" "cubic-bezier(0,1,1,0)"
                     ]
                 ]
             ]
         ]
-        [ viewWheelCenter
-        , viewWheelArrow
-        , viewWheel
+        [ div [ css [ nthChild "1" <| animation 1 ++ [ left <| px 8 ] ] ] []
+        , div [ css [ nthChild "2" <| animation 2 ++ [ left <| px 8 ] ] ] []
+        , div [ css [ nthChild "3" <| animation 2 ++ [ left <| px 32 ] ] ] []
+        , div [ css [ nthChild "4" <| animation 3 ++ [ left <| px 56 ] ] ] []
         ]
+
+
+viewTitle : String -> Html Msg
+viewTitle str =
+    div [ css [ TW.font_black, TW.text_5xl ] ] (htmlAddedBrFromString str)
+
+
+viewDesc : String -> Html Msg
+viewDesc str =
+    div [ css [ TW.text_lg ] ]
+        (htmlAddedBrFromString str)
+
+
+boolCss : Bool -> Style -> Style
+boolCss is style =
+    if is then
+        style
+
+    else
+        Css.batch []
+
+
+styleButton =
+    Css.batch
+        [ TW.text_center
+        , TW.text_lg
+        , TW.px_4
+        , TW.py_2
+        , backgroundColor <| hex "#feffff12"
+        , TW.text_white
+        , TW.border_0
+        , fontFamilies [ qt "IBM Plex Sans", .value sansSerif ]
+        , TW.cursor_pointer
+        ]
+
+
+htmlAddedBrFromString : String -> List (Html msg)
+htmlAddedBrFromString str =
+    List.intersperse (br [] []) (List.map text (String.lines str))
 
 
 viewWheelCenter : Html Msg
@@ -170,15 +455,25 @@ viewWheelArrow =
         []
 
 
-viewWheel : Html Msg
-viewWheel =
+viewWheel : Model -> Html Msg
+viewWheel model =
     let
-        wait =
-            Css.batch
-                [ property "animation-timing-function" "linear"
-                , property "animation-iteration-count" "infinite"
-                , animationDuration (sec 30)
-                ]
+        animat =
+            if model.isStartGame then
+                styleWinner model.winnerID
+
+            else
+                Css.batch
+                    [ property "animation-timing-function" "linear"
+                    , property "animation-iteration-count" "infinite"
+                    , animationDuration (sec 30)
+                    , animationName
+                        (keyframes
+                            [ ( 0, [ CssAnimation.property "transform" "rotate(0)" ] )
+                            , ( 100, [ CssAnimation.property "transform" "rotate(360deg)" ] )
+                            ]
+                        )
+                    ]
     in
     div
         [ css
@@ -189,28 +484,22 @@ viewWheel =
             , property "animation-timing-function" "ease-out"
             , property "animation-fill-mode" "forwards"
             , transform (rotate <| deg -22.5)
-            , wait
-            , animationName
-                (keyframes
-                    [ ( 0, [ CssAnimation.property "transform" "rotate(0)" ] )
-                    , ( 100, [ CssAnimation.property "transform" "rotate(360deg)" ] )
-                    ]
-                )
+            , animat
             ]
         ]
-        [ viewWheellInner ]
+        [ viewWheelInner model.items ]
 
 
-viewWheellInner : Html Msg
-viewWheellInner =
+viewWheelInner : List Item -> Html Msg
+viewWheelInner items =
     div [ css [ TW.absolute, cubeCss pct 100, borderRadius <| pct 50, TW.overflow_hidden, border3 (px 18) solid (hex "#fff") ] ]
-        [ viewWheellPart (List.take 4 initItems) True
-        , viewWheellPart (List.drop 4 initItems) False
+        [ viewWheelPart (List.take 4 items) True
+        , viewWheelPart (List.drop 4 items) False
         ]
 
 
-viewWheellPart : List Item -> Bool -> Html Msg
-viewWheellPart items group =
+viewWheelPart : List Item -> Bool -> Html Msg
+viewWheelPart items group =
     let
         num =
             if group then
@@ -227,11 +516,11 @@ viewWheellPart items group =
                 left <| pct 50
     in
     div [ css [ TW.absolute, TW.w_1over2, TW.h_full, TW.overflow_hidden, pos ] ]
-        (List.indexedMap (\id -> viewWheellSection <| id + num) items)
+        (List.indexedMap (\id -> viewWheelSection <| id + num) items)
 
 
-viewWheellSection : Int -> Item -> Html Msg
-viewWheellSection id i =
+viewWheelSection : Int -> Item -> Html Msg
+viewWheelSection id i =
     div
         [ css
             [ TW.absolute
@@ -313,6 +602,49 @@ styleSlice id =
                 [ left <| pct -100
                 , property "background-image" "linear-gradient(270deg, transparent 50%, transparent 50%), linear-gradient(225deg, transparent 50%, #252ef7 50%)"
                 ]
+
+        _ ->
+            Css.batch []
+
+
+styleWinner : Int -> Style
+styleWinner id =
+    let
+        rotate : Float -> Style
+        rotate endRotate =
+            Css.batch
+                [ animationName
+                    (keyframes
+                        [ ( 0, [ CssAnimation.property "transform" "rotate(-22.5deg)" ] )
+                        , ( 100, [ CssAnimation.property "transform" ("rotate(" ++ String.fromFloat endRotate ++ "deg)") ] )
+                        ]
+                    )
+                ]
+    in
+    case id of
+        0 ->
+            rotate 967
+
+        1 ->
+            rotate 922.5
+
+        2 ->
+            rotate 1237.5
+
+        3 ->
+            rotate 1192.5
+
+        4 ->
+            rotate 1147.5
+
+        5 ->
+            rotate 1102.5
+
+        6 ->
+            rotate 1057.5
+
+        7 ->
+            rotate 1012.5
 
         _ ->
             Css.batch []

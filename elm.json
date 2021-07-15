@@ -6,6 +6,7 @@
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
+            "Massolari/elm-mask": "1.1.0",
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "andrewMacmurray/elm-delay": "4.0.0",
             "elm/browser": "1.0.2",
@@ -17,11 +18,13 @@
             "elm-community/list-extra": "8.3.1",
             "krisajenkins/remotedata": "6.0.1",
             "matheus23/elm-default-tailwind-modules": "2.0.1",
+            "robinheghan/elm-phone-numbers": "1.0.0",
             "rtfeldman/elm-css": "16.1.1"
         },
         "indirect": {
             "elm/bytes": "1.0.8",
             "elm/file": "1.0.5",
+            "elm/regex": "1.0.0",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.2",

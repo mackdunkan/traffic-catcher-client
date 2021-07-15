@@ -4952,6 +4952,107 @@ function _Browser_load(url)
 		}
 	}));
 }
+
+
+// CREATE
+
+var _Regex_never = /.^/;
+
+var _Regex_fromStringWith = F2(function(options, string)
+{
+	var flags = 'g';
+	if (options.multiline) { flags += 'm'; }
+	if (options.caseInsensitive) { flags += 'i'; }
+
+	try
+	{
+		return $elm$core$Maybe$Just(new RegExp(string, flags));
+	}
+	catch(error)
+	{
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+
+// USE
+
+var _Regex_contains = F2(function(re, string)
+{
+	return string.match(re) !== null;
+});
+
+
+var _Regex_findAtMost = F3(function(n, re, str)
+{
+	var out = [];
+	var number = 0;
+	var string = str;
+	var lastIndex = re.lastIndex;
+	var prevLastIndex = -1;
+	var result;
+	while (number++ < n && (result = re.exec(string)))
+	{
+		if (prevLastIndex == re.lastIndex) break;
+		var i = result.length - 1;
+		var subs = new Array(i);
+		while (i > 0)
+		{
+			var submatch = result[i];
+			subs[--i] = submatch
+				? $elm$core$Maybe$Just(submatch)
+				: $elm$core$Maybe$Nothing;
+		}
+		out.push(A4($elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
+		prevLastIndex = re.lastIndex;
+	}
+	re.lastIndex = lastIndex;
+	return _List_fromArray(out);
+});
+
+
+var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
+{
+	var count = 0;
+	function jsReplacer(match)
+	{
+		if (count++ >= n)
+		{
+			return match;
+		}
+		var i = arguments.length - 3;
+		var submatches = new Array(i);
+		while (i > 0)
+		{
+			var submatch = arguments[i];
+			submatches[--i] = submatch
+				? $elm$core$Maybe$Just(submatch)
+				: $elm$core$Maybe$Nothing;
+		}
+		return replacer(A4($elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
+	}
+	return string.replace(re, jsReplacer);
+});
+
+var _Regex_splitAtMost = F3(function(n, re, str)
+{
+	var string = str;
+	var out = [];
+	var start = re.lastIndex;
+	var restoreLastIndex = re.lastIndex;
+	while (n--)
+	{
+		var result = re.exec(string);
+		if (!result) break;
+		out.push(string.slice(start, result.index));
+		start = re.lastIndex;
+	}
+	out.push(string.slice(start));
+	re.lastIndex = restoreLastIndex;
+	return _List_fromArray(out);
+});
+
+var _Regex_infinity = Infinity;
 var $elm$core$Basics$composeR = F3(
 	function (f, g, x) {
 		return g(
@@ -10563,11 +10664,11 @@ var $author$project$WheelofFortune$initItems = _List_fromArray(
 		A4($author$project$WheelofFortune$Item, 'Шарф2', 200, 200, '#eee'),
 		A4($author$project$WheelofFortune$Item, 'Кепка2', 200, 200, '#0074ad'),
 		A4($author$project$WheelofFortune$Item, 'Носок2', 200, 200, '#0074ad'),
-		A4($author$project$WheelofFortune$Item, 'Носок2', 200, 200, '#0074ad')
+		A4($author$project$WheelofFortune$Item, 'Носок3', 200, 200, '#0074ad')
 	]);
 var $author$project$WheelofFortune$init = function (_v0) {
 	return _Utils_Tuple2(
-		{items: $author$project$WheelofFortune$initItems},
+		{errorPhone: false, isOpen: false, isStartGame: false, items: $author$project$WheelofFortune$initItems, phone: '', step: 1, winnerID: 4},
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -12730,21 +12831,329 @@ var $rtfeldman$elm_css$VirtualDom$Styled$toUnstyled = function (vdom) {
 	}
 };
 var $rtfeldman$elm_css$Html$Styled$toUnstyled = $rtfeldman$elm_css$VirtualDom$Styled$toUnstyled;
+var $author$project$WheelofFortune$Message = {$: 'Message'};
+var $elm$core$Process$sleep = _Process_sleep;
+var $andrewMacmurray$elm_delay$Delay$after = F2(
+	function (time, msg) {
+		return A2(
+			$elm$core$Task$perform,
+			$elm$core$Basics$always(msg),
+			$elm$core$Process$sleep(time));
+	});
+var $elm$core$String$filter = _String_filter;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $Massolari$elm_mask$Mask$maskStringHelper = F3(
+	function (pattern, value, result) {
+		maskStringHelper:
+		while (true) {
+			var _v0 = $elm$core$String$uncons(pattern);
+			if (_v0.$ === 'Just') {
+				var _v1 = _v0.a;
+				var headPattern = _v1.a;
+				var tailPattern = _v1.b;
+				var _v2 = $elm$core$String$uncons(value);
+				if (_v2.$ === 'Just') {
+					var _v3 = _v2.a;
+					var charValue = _v3.a;
+					var rest = _v3.b;
+					if ('#' === headPattern.valueOf()) {
+						var $temp$pattern = tailPattern,
+							$temp$value = rest,
+							$temp$result = _Utils_ap(
+							result,
+							$elm$core$String$fromChar(charValue));
+						pattern = $temp$pattern;
+						value = $temp$value;
+						result = $temp$result;
+						continue maskStringHelper;
+					} else {
+						var notHashtagHeadPattern = headPattern;
+						var $temp$pattern = tailPattern,
+							$temp$value = value,
+							$temp$result = _Utils_ap(
+							result,
+							$elm$core$String$fromChar(notHashtagHeadPattern));
+						pattern = $temp$pattern;
+						value = $temp$value;
+						result = $temp$result;
+						continue maskStringHelper;
+					}
+				} else {
+					return A2($elm$core$String$contains, '#', pattern) ? result : _Utils_ap(result, pattern);
+				}
+			} else {
+				return result;
+			}
+		}
+	});
+var $Massolari$elm_mask$Mask$number = F2(
+	function (pattern, value) {
+		return function (v) {
+			return A3($Massolari$elm_mask$Mask$maskStringHelper, pattern, v, '');
+		}(
+			A2($elm$core$String$filter, $elm$core$Char$isDigit, value));
+	});
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$WheelofFortune$unMask = function (str) {
+	return A3(
+		$elm$core$String$replace,
+		' ',
+		'',
+		A3(
+			$elm$core$String$replace,
+			'-',
+			'',
+			A3(
+				$elm$core$String$replace,
+				')',
+				'',
+				A3($elm$core$String$replace, '(', '', str))));
+};
+var $robinheghan$elm_phone_numbers$PhoneNumber$CarrierSpecific = {$: 'CarrierSpecific'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$Emergency = {$: 'Emergency'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$FixedLine = {$: 'FixedLine'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$Mobile = {$: 'Mobile'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$NoInternationalDialling = {$: 'NoInternationalDialling'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$Pager = {$: 'Pager'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$PersonalNumber = {$: 'PersonalNumber'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$PremiumRate = {$: 'PremiumRate'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$SharedCost = {$: 'SharedCost'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$ShortCode = {$: 'ShortCode'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$SmsServices = {$: 'SmsServices'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$StandardRate = {$: 'StandardRate'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$TollFree = {$: 'TollFree'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$Uan = {$: 'Uan'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$Voicemail = {$: 'Voicemail'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$Voip = {$: 'Voip'};
+var $robinheghan$elm_phone_numbers$PhoneNumber$anyType = _List_fromArray(
+	[$robinheghan$elm_phone_numbers$PhoneNumber$FixedLine, $robinheghan$elm_phone_numbers$PhoneNumber$Mobile, $robinheghan$elm_phone_numbers$PhoneNumber$TollFree, $robinheghan$elm_phone_numbers$PhoneNumber$PremiumRate, $robinheghan$elm_phone_numbers$PhoneNumber$SharedCost, $robinheghan$elm_phone_numbers$PhoneNumber$PersonalNumber, $robinheghan$elm_phone_numbers$PhoneNumber$Voip, $robinheghan$elm_phone_numbers$PhoneNumber$Pager, $robinheghan$elm_phone_numbers$PhoneNumber$Uan, $robinheghan$elm_phone_numbers$PhoneNumber$Emergency, $robinheghan$elm_phone_numbers$PhoneNumber$Voicemail, $robinheghan$elm_phone_numbers$PhoneNumber$ShortCode, $robinheghan$elm_phone_numbers$PhoneNumber$StandardRate, $robinheghan$elm_phone_numbers$PhoneNumber$CarrierSpecific, $robinheghan$elm_phone_numbers$PhoneNumber$SmsServices, $robinheghan$elm_phone_numbers$PhoneNumber$NoInternationalDialling]);
+var $elm$regex$Regex$Match = F4(
+	function (match, index, number, submatches) {
+		return {index: index, match: match, number: number, submatches: submatches};
+	});
+var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
+var $elm$regex$Regex$fromString = function (string) {
+	return A2(
+		$elm$regex$Regex$fromStringWith,
+		{caseInsensitive: false, multiline: false},
+		string);
+};
+var $elm$regex$Regex$never = _Regex_never;
+var $robinheghan$elm_phone_numbers$PhoneNumber$Countries$countryRU = {
+	countryCode: '7',
+	generalNumberPattern: A2(
+		$elm$core$Maybe$withDefault,
+		$elm$regex$Regex$never,
+		$elm$regex$Regex$fromString('[347-9]\\d{9}')),
+	id: 'RU',
+	internationalPrefix: $elm$core$Maybe$Just('810'),
+	nationalPrefix: $elm$core$Maybe$Just('8'),
+	numberTypes: _List_fromArray(
+		[
+			{
+			exampleNumber: '3011234567',
+			numberType: $robinheghan$elm_phone_numbers$PhoneNumber$FixedLine,
+			pattern: A2(
+				$elm$core$Maybe$withDefault,
+				$elm$regex$Regex$never,
+				$elm$regex$Regex$fromString('(?:3(?:0[12]|4[1-35-79]|5[1-3]|65|8[1-58]|9[0145])|4(?:01|1[1356]|2[13467]|7[1-5]|8[1-7]|9[1-689])|8(?:1[1-8]|2[01]|3[13-6]|4[0-8]|5[15]|6[1-35-79]|7[1-37-9]))\\d{7}'))
+		},
+			{
+			exampleNumber: '9123456789',
+			numberType: $robinheghan$elm_phone_numbers$PhoneNumber$Mobile,
+			pattern: A2(
+				$elm$core$Maybe$withDefault,
+				$elm$regex$Regex$never,
+				$elm$regex$Regex$fromString('9\\d{9}'))
+		},
+			{
+			exampleNumber: '8001234567',
+			numberType: $robinheghan$elm_phone_numbers$PhoneNumber$TollFree,
+			pattern: A2(
+				$elm$core$Maybe$withDefault,
+				$elm$regex$Regex$never,
+				$elm$regex$Regex$fromString('80[04]\\d{7}'))
+		},
+			{
+			exampleNumber: '8091234567',
+			numberType: $robinheghan$elm_phone_numbers$PhoneNumber$PremiumRate,
+			pattern: A2(
+				$elm$core$Maybe$withDefault,
+				$elm$regex$Regex$never,
+				$elm$regex$Regex$fromString('80[39]\\d{7}'))
+		},
+			{
+			exampleNumber: '8081234567',
+			numberType: $robinheghan$elm_phone_numbers$PhoneNumber$PersonalNumber,
+			pattern: A2(
+				$elm$core$Maybe$withDefault,
+				$elm$regex$Regex$never,
+				$elm$regex$Regex$fromString('808\\d{7}'))
+		}
+		])
+};
+var $robinheghan$elm_phone_numbers$PhoneNumber$localizeNumber = F2(
+	function (country, number) {
+		var _v0 = country.internationalPrefix;
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Maybe$Just(number);
+		} else {
+			var prefix = _v0.a;
+			var prefixLength = $elm$core$String$length(prefix);
+			var countryCodeLength = $elm$core$String$length(country.countryCode);
+			return A2($elm$core$String$startsWith, '+', number) ? (_Utils_eq(
+				country.countryCode,
+				A2(
+					$elm$core$String$left,
+					countryCodeLength,
+					A2($elm$core$String$dropLeft, 1, number))) ? $elm$core$Maybe$Just(
+				A2($elm$core$String$dropLeft, countryCodeLength + 1, number)) : $elm$core$Maybe$Nothing) : (A2($elm$core$String$startsWith, prefix, number) ? (_Utils_eq(
+				country.countryCode,
+				A2(
+					$elm$core$String$left,
+					countryCodeLength,
+					A2($elm$core$String$dropLeft, prefixLength, number))) ? $elm$core$Maybe$Just(
+				A2($elm$core$String$dropLeft, prefixLength + countryCodeLength, number)) : $elm$core$Maybe$Nothing) : $elm$core$Maybe$Just(number));
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $elm$regex$Regex$find = _Regex_findAtMost(_Regex_infinity);
+var $robinheghan$elm_phone_numbers$PhoneNumber$regexExactMatch = F2(
+	function (regex, str) {
+		var _v0 = A2($elm$regex$Regex$find, regex, str);
+		if (_v0.b && (!_v0.b.b)) {
+			var match = _v0.a;
+			return _Utils_eq(match.match, str);
+		} else {
+			return false;
+		}
+	});
+var $robinheghan$elm_phone_numbers$PhoneNumber$matchingCountry = F4(
+	function (number, defaultCountry, relevantTypes, country) {
+		var maybeLocalNumber = A2($robinheghan$elm_phone_numbers$PhoneNumber$localizeNumber, country, number);
+		var matchesSpec = F2(
+			function (localNumber, desc) {
+				return A2($robinheghan$elm_phone_numbers$PhoneNumber$regexExactMatch, desc.pattern, localNumber);
+			});
+		var isDefaultCountry = _Utils_eq(defaultCountry.id, country.id);
+		if (maybeLocalNumber.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var localNumber = maybeLocalNumber.a;
+			if (_Utils_eq(localNumber, number) && (!isDefaultCountry)) {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var matchingTypes = A2(
+					$elm$core$List$map,
+					function ($) {
+						return $.numberType;
+					},
+					A2(
+						$elm$core$List$filter,
+						matchesSpec(localNumber),
+						A2(
+							$elm$core$List$filter,
+							function (nt) {
+								return A2($elm$core$List$member, nt.numberType, relevantTypes);
+							},
+							country.numberTypes)));
+				if (!matchingTypes.b) {
+					return A2($robinheghan$elm_phone_numbers$PhoneNumber$regexExactMatch, country.generalNumberPattern, localNumber) ? $elm$core$Maybe$Just(
+						_Utils_Tuple2(country, _List_Nil)) : $elm$core$Maybe$Nothing;
+				} else {
+					return $elm$core$Maybe$Just(
+						_Utils_Tuple2(country, matchingTypes));
+				}
+			}
+		}
+	});
+var $robinheghan$elm_phone_numbers$PhoneNumber$sanitizeNumber = function (str) {
+	return A2(
+		$elm$core$String$filter,
+		function (c) {
+			return !_Utils_eq(
+				c,
+				_Utils_chr(' '));
+		},
+		str);
+};
+var $robinheghan$elm_phone_numbers$PhoneNumber$matches = F2(
+	function (config, number) {
+		var sanitizedNumber = $robinheghan$elm_phone_numbers$PhoneNumber$sanitizeNumber(number);
+		return A2(
+			$elm$core$List$filterMap,
+			A3($robinheghan$elm_phone_numbers$PhoneNumber$matchingCountry, sanitizedNumber, config.defaultCountry, config.types),
+			A2($elm$core$List$cons, config.defaultCountry, config.otherCountries));
+	});
+var $robinheghan$elm_phone_numbers$PhoneNumber$valid = F2(
+	function (config, number) {
+		var _v0 = A2($robinheghan$elm_phone_numbers$PhoneNumber$matches, config, number);
+		if (!_v0.b) {
+			return false;
+		} else {
+			return true;
+		}
+	});
+var $author$project$WheelofFortune$validNorwegianNumber = function (number) {
+	return A2(
+		$robinheghan$elm_phone_numbers$PhoneNumber$valid,
+		{defaultCountry: $robinheghan$elm_phone_numbers$PhoneNumber$Countries$countryRU, otherCountries: _List_Nil, types: $robinheghan$elm_phone_numbers$PhoneNumber$anyType},
+		number);
+};
 var $author$project$WheelofFortune$update = F2(
 	function (msg, model) {
-		return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		switch (msg.$) {
+			case 'StartFortune':
+				return $author$project$WheelofFortune$validNorwegianNumber(
+					$author$project$WheelofFortune$unMask(model.phone)) ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{errorPhone: false, isStartGame: true, step: 2}),
+					A2($andrewMacmurray$elm_delay$Delay$after, 6500, $author$project$WheelofFortune$Message)) : _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{errorPhone: true}),
+					$elm$core$Platform$Cmd$none);
+			case 'Message':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{step: 3}),
+					$elm$core$Platform$Cmd$none);
+			case 'InputtedPhone':
+				var phone = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							phone: A2($Massolari$elm_mask$Mask$number, '(###) ###-####', phone)
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var is = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{isOpen: is}),
+					$elm$core$Platform$Cmd$none);
+		}
 	});
-var $rtfeldman$elm_css$VirtualDom$Styled$Node = F3(
-	function (a, b, c) {
-		return {$: 'Node', a: a, b: b, c: c};
-	});
-var $rtfeldman$elm_css$VirtualDom$Styled$node = $rtfeldman$elm_css$VirtualDom$Styled$Node;
-var $rtfeldman$elm_css$Html$Styled$node = $rtfeldman$elm_css$VirtualDom$Styled$node;
-var $rtfeldman$elm_css$Html$Styled$div = $rtfeldman$elm_css$Html$Styled$node('div');
-var $rtfeldman$elm_css$Css$Preprocess$ApplyStyles = function (a) {
-	return {$: 'ApplyStyles', a: a};
-};
-var $rtfeldman$elm_css$Css$batch = $rtfeldman$elm_css$Css$Preprocess$ApplyStyles;
 var $rtfeldman$elm_css$Css$Preprocess$AppendProperty = function (a) {
 	return {$: 'AppendProperty', a: a};
 };
@@ -12752,12 +13161,6 @@ var $rtfeldman$elm_css$Css$property = F2(
 	function (key, value) {
 		return $rtfeldman$elm_css$Css$Preprocess$AppendProperty(key + (':' + value));
 	});
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_gray_400 = $rtfeldman$elm_css$Css$batch(
-	_List_fromArray(
-		[
-			A2($rtfeldman$elm_css$Css$property, '--tw-bg-opacity', '1'),
-			A2($rtfeldman$elm_css$Css$property, 'background-color', 'rgba(156, 163, 175, var(--tw-bg-opacity))')
-		]));
 var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$box_border = A2($rtfeldman$elm_css$Css$property, 'box-sizing', 'border-box');
 var $rtfeldman$elm_css$VirtualDom$Styled$Attribute = F3(
 	function (a, b, c) {
@@ -12797,30 +13200,83 @@ var $rtfeldman$elm_css$Html$Styled$Internal$css = function (styles) {
 	return A3($rtfeldman$elm_css$VirtualDom$Styled$Attribute, classProperty, styles, classname);
 };
 var $rtfeldman$elm_css$Html$Styled$Attributes$css = $rtfeldman$elm_css$Html$Styled$Internal$css;
-var $rtfeldman$elm_css$Css$prop1 = F2(
-	function (key, arg) {
-		return A2($rtfeldman$elm_css$Css$property, key, arg.value);
-	});
-var $rtfeldman$elm_css$Css$height = $rtfeldman$elm_css$Css$prop1('height');
-var $rtfeldman$elm_css$Css$width = $rtfeldman$elm_css$Css$prop1('width');
-var $author$project$WheelofFortune$cubeCss = F2(
-	function (r, size) {
-		return $rtfeldman$elm_css$Css$batch(
-			_List_fromArray(
-				[
-					$rtfeldman$elm_css$Css$width(
-					r(size)),
-					$rtfeldman$elm_css$Css$height(
-					r(size))
-				]));
-	});
 var $rtfeldman$elm_css$Css$Structure$Descendant = {$: 'Descendant'};
 var $rtfeldman$elm_css$Css$Preprocess$NestSnippet = F2(
 	function (a, b) {
 		return {$: 'NestSnippet', a: a, b: b};
 	});
 var $rtfeldman$elm_css$Css$Global$descendants = $rtfeldman$elm_css$Css$Preprocess$NestSnippet($rtfeldman$elm_css$Css$Structure$Descendant);
+var $rtfeldman$elm_css$VirtualDom$Styled$Node = F3(
+	function (a, b, c) {
+		return {$: 'Node', a: a, b: b, c: c};
+	});
+var $rtfeldman$elm_css$VirtualDom$Styled$node = $rtfeldman$elm_css$VirtualDom$Styled$Node;
+var $rtfeldman$elm_css$Html$Styled$node = $rtfeldman$elm_css$VirtualDom$Styled$node;
+var $rtfeldman$elm_css$Html$Styled$div = $rtfeldman$elm_css$Html$Styled$node('div');
+var $rtfeldman$elm_css$Css$Transitions$EaseInOut = {$: 'EaseInOut'};
+var $rtfeldman$elm_css$Css$Transitions$easeInOut = $rtfeldman$elm_css$Css$Transitions$EaseInOut;
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$fixed = A2($rtfeldman$elm_css$Css$property, 'position', 'fixed');
+var $rtfeldman$elm_css$Css$prop1 = F2(
+	function (key, arg) {
+		return A2($rtfeldman$elm_css$Css$property, key, arg.value);
+	});
+var $rtfeldman$elm_css$Css$stringsToValue = function (list) {
+	return $elm$core$List$isEmpty(list) ? {value: 'none'} : {
+		value: A2(
+			$elm$core$String$join,
+			', ',
+			A2(
+				$elm$core$List$map,
+				function (s) {
+					return s;
+				},
+				list))
+	};
+};
+var $rtfeldman$elm_css$Css$fontFamilies = A2(
+	$elm$core$Basics$composeL,
+	$rtfeldman$elm_css$Css$prop1('font-family'),
+	$rtfeldman$elm_css$Css$stringsToValue);
+var $rtfeldman$elm_css$VirtualDom$Styled$property = F2(
+	function (key, value) {
+		return A3(
+			$rtfeldman$elm_css$VirtualDom$Styled$Attribute,
+			A2($elm$virtual_dom$VirtualDom$property, key, value),
+			_List_Nil,
+			'');
+	});
+var $rtfeldman$elm_css$Html$Styled$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			$rtfeldman$elm_css$VirtualDom$Styled$property,
+			key,
+			$elm$json$Json$Encode$string(string));
+	});
+var $rtfeldman$elm_css$Html$Styled$Attributes$href = function (url) {
+	return A2($rtfeldman$elm_css$Html$Styled$Attributes$stringProperty, 'href', url);
+};
+var $rtfeldman$elm_css$Css$Preprocess$ApplyStyles = function (a) {
+	return {$: 'ApplyStyles', a: a};
+};
+var $rtfeldman$elm_css$Css$batch = $rtfeldman$elm_css$Css$Preprocess$ApplyStyles;
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_y_0 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'top', '0px'),
+			A2($rtfeldman$elm_css$Css$property, 'bottom', '0px')
+		]));
 var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$leading_none = A2($rtfeldman$elm_css$Css$property, 'line-height', '1');
+var $rtfeldman$elm_css$Css$Transitions$Left = {$: 'Left'};
+var $rtfeldman$elm_css$Css$Transitions$Transition = function (a) {
+	return {$: 'Transition', a: a};
+};
+var $rtfeldman$elm_css$Css$Transitions$durationTransition = F2(
+	function (animation, duration) {
+		return $rtfeldman$elm_css$Css$Transitions$Transition(
+			{animation: animation, delay: $elm$core$Maybe$Nothing, duration: duration, timing: $elm$core$Maybe$Nothing});
+	});
+var $rtfeldman$elm_css$Css$Transitions$left = $rtfeldman$elm_css$Css$Transitions$durationTransition($rtfeldman$elm_css$Css$Transitions$Left);
+var $rtfeldman$elm_css$Css$maxWidth = $rtfeldman$elm_css$Css$prop1('max-width');
 var $rtfeldman$elm_css$Css$PxUnits = {$: 'PxUnits'};
 var $rtfeldman$elm_css$Css$Structure$Compatible = {$: 'Compatible'};
 var $rtfeldman$elm_css$Css$Internal$lengthConverter = F3(
@@ -12848,9 +13304,297 @@ var $rtfeldman$elm_css$Css$Internal$lengthConverter = F3(
 		};
 	});
 var $rtfeldman$elm_css$Css$px = A2($rtfeldman$elm_css$Css$Internal$lengthConverter, $rtfeldman$elm_css$Css$PxUnits, 'px');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$relative = A2($rtfeldman$elm_css$Css$property, 'position', 'relative');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$rounded_full = A2($rtfeldman$elm_css$Css$property, 'border-radius', '9999px');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_left = A2($rtfeldman$elm_css$Css$property, 'text-align', 'left');
+var $rtfeldman$elm_css$Css$qt = function (str) {
+	return '\"' + (str + '\"');
+};
+var $rtfeldman$elm_css$VirtualDom$Styled$attribute = F2(
+	function (key, value) {
+		return A3(
+			$rtfeldman$elm_css$VirtualDom$Styled$Attribute,
+			A2($elm$virtual_dom$VirtualDom$attribute, key, value),
+			_List_Nil,
+			'');
+	});
+var $rtfeldman$elm_css$Html$Styled$Attributes$rel = $rtfeldman$elm_css$VirtualDom$Styled$attribute('rel');
+var $rtfeldman$elm_css$Css$sansSerif = {fontFamily: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'sans-serif'};
+var $rtfeldman$elm_css$VirtualDom$Styled$style = F2(
+	function (key, val) {
+		return A3(
+			$rtfeldman$elm_css$VirtualDom$Styled$Attribute,
+			A2($elm$virtual_dom$VirtualDom$style, key, val),
+			_List_Nil,
+			'');
+	});
+var $rtfeldman$elm_css$Html$Styled$Attributes$style = $rtfeldman$elm_css$VirtualDom$Styled$style;
+var $rtfeldman$elm_css$Css$Transitions$Transform = {$: 'Transform'};
+var $rtfeldman$elm_css$Css$Transitions$fullTransition = F4(
+	function (animation, duration, delay, timing) {
+		return $rtfeldman$elm_css$Css$Transitions$Transition(
+			{
+				animation: animation,
+				delay: $elm$core$Maybe$Just(delay),
+				duration: duration,
+				timing: $elm$core$Maybe$Just(timing)
+			});
+	});
+var $rtfeldman$elm_css$Css$Transitions$transform3 = $rtfeldman$elm_css$Css$Transitions$fullTransition($rtfeldman$elm_css$Css$Transitions$Transform);
+var $rtfeldman$elm_css$Css$Transitions$propToString = function (prop) {
+	switch (prop.$) {
+		case 'Background':
+			return 'background';
+		case 'BackgroundColor':
+			return 'background-color';
+		case 'BackgroundPosition':
+			return 'background-position';
+		case 'BackgroundSize':
+			return 'background-size';
+		case 'Border':
+			return 'border';
+		case 'BorderBottom':
+			return 'border-bottom';
+		case 'BorderBottomColor':
+			return 'border-bottom-color';
+		case 'BorderBottomLeftRadius':
+			return 'border-bottom-left-radius';
+		case 'BorderBottomRightRadius':
+			return 'border-bottom-right-radius';
+		case 'BorderBottomWidth':
+			return 'border-bottom-width';
+		case 'BorderColor':
+			return 'border-color';
+		case 'BorderLeft':
+			return 'border-left';
+		case 'BorderLeftColor':
+			return 'border-left-color';
+		case 'BorderLeftWidth':
+			return 'border-left-width';
+		case 'BorderRadius':
+			return 'border-radius';
+		case 'BorderRight':
+			return 'border-right';
+		case 'BorderRightColor':
+			return 'border-right-color';
+		case 'BorderRightWidth':
+			return 'border-right-width';
+		case 'BorderTop':
+			return 'border-top';
+		case 'BorderTopColor':
+			return 'border-top-color';
+		case 'BorderTopLeftRadius':
+			return 'border-top-left-radius';
+		case 'BorderTopRightRadius':
+			return 'border-top-right-radius';
+		case 'BorderTopWidth':
+			return 'border-top-width';
+		case 'BorderWidth':
+			return 'border-width';
+		case 'Bottom':
+			return 'bottom';
+		case 'BoxShadow':
+			return 'box-shadow';
+		case 'CaretColor':
+			return 'caret-color';
+		case 'Clip':
+			return 'clip';
+		case 'ClipPath':
+			return 'clip-path';
+		case 'Color':
+			return 'color';
+		case 'ColumnCount':
+			return 'column-count';
+		case 'ColumnGap':
+			return 'column-gap';
+		case 'ColumnRule':
+			return 'column-rule';
+		case 'ColumnRuleColor':
+			return 'column-rule-color';
+		case 'ColumnRuleWidth':
+			return 'column-rule-width';
+		case 'ColumnWidth':
+			return 'column-width';
+		case 'Columns':
+			return 'columns';
+		case 'Filter':
+			return 'filter';
+		case 'Flex':
+			return 'flex';
+		case 'FlexBasis':
+			return 'flex-basis';
+		case 'FlexGrow':
+			return 'flex-grow';
+		case 'FlexShrink':
+			return 'flex-shrink';
+		case 'Font':
+			return 'font';
+		case 'FontSize':
+			return 'font-size';
+		case 'FontSizeAdjust':
+			return 'font-size-adjust';
+		case 'FontStretch':
+			return 'font-stretch';
+		case 'FontVariationSettings':
+			return 'font-variation-settings';
+		case 'FontWeight':
+			return 'font-weight';
+		case 'GridColumnGap':
+			return 'grid-column-gap';
+		case 'GridGap':
+			return 'grid-gap';
+		case 'GridRowGap':
+			return 'grid-row-gap';
+		case 'Height':
+			return 'height';
+		case 'Left':
+			return 'left';
+		case 'LetterSpacing':
+			return 'letter-spacing';
+		case 'LineHeight':
+			return 'line-height';
+		case 'Margin':
+			return 'margin';
+		case 'MarginBottom':
+			return 'margin-bottom';
+		case 'MarginLeft':
+			return 'margin-left';
+		case 'MarginRight':
+			return 'margin-right';
+		case 'MarginTop':
+			return 'margin-top';
+		case 'Mask':
+			return 'mask';
+		case 'MaskPosition':
+			return 'mask-position';
+		case 'MaskSize':
+			return 'mask-size';
+		case 'MaxHeight':
+			return 'max-height';
+		case 'MaxWidth':
+			return 'max-width';
+		case 'MinHeight':
+			return 'min-height';
+		case 'MinWidth':
+			return 'min-width';
+		case 'ObjectPosition':
+			return 'object-position';
+		case 'Offset':
+			return 'offset';
+		case 'OffsetAnchor':
+			return 'offset-anchor';
+		case 'OffsetDistance':
+			return 'offset-distance';
+		case 'OffsetPath':
+			return 'offset-path';
+		case 'OffsetRotate':
+			return 'offset-rotate';
+		case 'Opacity':
+			return 'opacity';
+		case 'Order':
+			return 'order';
+		case 'Outline':
+			return 'outline';
+		case 'OutlineColor':
+			return 'outline-color';
+		case 'OutlineOffset':
+			return 'outline-offset';
+		case 'OutlineWidth':
+			return 'outline-width';
+		case 'Padding':
+			return 'padding';
+		case 'PaddingBottom':
+			return 'padding-bottom';
+		case 'PaddingLeft':
+			return 'padding-left';
+		case 'PaddingRight':
+			return 'padding-right';
+		case 'PaddingTop':
+			return 'padding-top';
+		case 'Right':
+			return 'right';
+		case 'TabSize':
+			return 'tab-size';
+		case 'TextIndent':
+			return 'text-indent';
+		case 'TextShadow':
+			return 'text-shadow';
+		case 'Top':
+			return 'top';
+		case 'Transform':
+			return 'transform';
+		case 'TransformOrigin':
+			return 'transform-origin';
+		case 'VerticalAlign':
+			return 'vertical-align';
+		case 'Visibility':
+			return 'visibility';
+		case 'Width':
+			return 'width';
+		case 'WordSpacing':
+			return 'word-spacing';
+		default:
+			return 'z-index';
+	}
+};
+var $rtfeldman$elm_css$Css$Transitions$timeToString = function (time) {
+	return $elm$core$String$fromFloat(time) + 'ms';
+};
+var $rtfeldman$elm_css$Css$Transitions$timingFunctionToString = function (tf) {
+	switch (tf.$) {
+		case 'Ease':
+			return 'ease';
+		case 'Linear':
+			return 'linear';
+		case 'EaseIn':
+			return 'ease-in';
+		case 'EaseOut':
+			return 'ease-out';
+		case 'EaseInOut':
+			return 'ease-in-out';
+		case 'StepStart':
+			return 'step-start';
+		case 'StepEnd':
+			return 'step-end';
+		default:
+			var _float = tf.a;
+			var float2 = tf.b;
+			var float3 = tf.c;
+			var float4 = tf.d;
+			return 'cubic-bezier(' + ($elm$core$String$fromFloat(_float) + (' , ' + ($elm$core$String$fromFloat(float2) + (' , ' + ($elm$core$String$fromFloat(float3) + (' , ' + ($elm$core$String$fromFloat(float4) + ')')))))));
+	}
+};
+var $rtfeldman$elm_css$Css$Transitions$transition = function (options) {
+	var v = A3(
+		$elm$core$String$slice,
+		0,
+		-1,
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, s) {
+					var animation = _v0.a.animation;
+					var duration = _v0.a.duration;
+					var delay = _v0.a.delay;
+					var timing = _v0.a.timing;
+					return s + (A2(
+						$elm$core$String$join,
+						' ',
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Css$Transitions$propToString(animation),
+								$rtfeldman$elm_css$Css$Transitions$timeToString(duration),
+								A2(
+								$elm$core$Maybe$withDefault,
+								'',
+								A2($elm$core$Maybe$map, $rtfeldman$elm_css$Css$Transitions$timeToString, delay)),
+								A2(
+								$elm$core$Maybe$withDefault,
+								'',
+								A2($elm$core$Maybe$map, $rtfeldman$elm_css$Css$Transitions$timingFunctionToString, timing))
+							])) + ',');
+				}),
+			'',
+			options));
+	return A2($rtfeldman$elm_css$Css$property, 'transition', v);
+};
 var $rtfeldman$elm_css$Css$Structure$TypeSelector = function (a) {
 	return {$: 'TypeSelector', a: a};
 };
@@ -12868,137 +13612,156 @@ var $rtfeldman$elm_css$Css$Global$typeSelector = F2(
 					A3($rtfeldman$elm_css$Css$Preprocess$StyleBlock, sel, _List_Nil, styles))
 				]));
 	});
-var $rtfeldman$elm_css$Css$animationDuration = function (arg) {
-	return A2($rtfeldman$elm_css$Css$prop1, 'animation-duration', arg);
+var $author$project$WheelofFortune$Modal = function (a) {
+	return {$: 'Modal', a: a};
 };
-var $rtfeldman$elm_css$Css$animationIterationCount = function (arg) {
-	return A2($rtfeldman$elm_css$Css$prop1, 'animation-iteration-count', arg);
+var $rtfeldman$elm_css$Css$backgroundColor = function (c) {
+	return A2($rtfeldman$elm_css$Css$property, 'background-color', c.value);
 };
-var $rtfeldman$elm_css$Css$Preprocess$WithKeyframes = function (a) {
-	return {$: 'WithKeyframes', a: a};
-};
-var $rtfeldman$elm_css$Css$animationName = function (arg) {
-	return ((arg.value === 'none') || ((arg.value === 'inherit') || ((arg.value === 'unset') || (arg.value === 'initial')))) ? A2($rtfeldman$elm_css$Css$prop1, 'animation-name', arg) : $rtfeldman$elm_css$Css$Preprocess$WithKeyframes(arg.value);
-};
-var $rtfeldman$elm_css$Css$angleConverter = F2(
-	function (suffix, angleVal) {
-		return {
-			angle: $rtfeldman$elm_css$Css$Structure$Compatible,
-			angleOrDirection: $rtfeldman$elm_css$Css$Structure$Compatible,
-			value: _Utils_ap(
-				$elm$core$String$fromFloat(angleVal),
-				suffix)
-		};
+var $rtfeldman$elm_css$Css$backgroundImage = $rtfeldman$elm_css$Css$prop1('background-image');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_center = A2($rtfeldman$elm_css$Css$property, 'background-position', 'center');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_contain = A2($rtfeldman$elm_css$Css$property, 'background-size', 'contain');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_no_repeat = A2($rtfeldman$elm_css$Css$property, 'background-repeat', 'no-repeat');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_0 = A2($rtfeldman$elm_css$Css$property, 'border-width', '0px');
+var $rtfeldman$elm_css$Css$bottom = $rtfeldman$elm_css$Css$prop1('bottom');
+var $rtfeldman$elm_css$Html$Styled$button = $rtfeldman$elm_css$Html$Styled$node('button');
+var $rtfeldman$elm_css$Css$height = $rtfeldman$elm_css$Css$prop1('height');
+var $rtfeldman$elm_css$Css$width = $rtfeldman$elm_css$Css$prop1('width');
+var $author$project$WheelofFortune$cubeCss = F2(
+	function (r, size) {
+		return $rtfeldman$elm_css$Css$batch(
+			_List_fromArray(
+				[
+					$rtfeldman$elm_css$Css$width(
+					r(size)),
+					$rtfeldman$elm_css$Css$height(
+					r(size))
+				]));
 	});
-var $rtfeldman$elm_css$Css$deg = $rtfeldman$elm_css$Css$angleConverter('deg');
-var $rtfeldman$elm_css$Css$Internal$printKeyframeSelector = function (_v0) {
-	var percentage = _v0.a;
-	var properties = _v0.b;
-	var propertiesStr = A2(
-		$elm$core$String$join,
-		'',
-		A2(
-			$elm$core$List$map,
-			function (_v1) {
-				var prop = _v1.a;
-				return prop + ';';
-			},
-			properties));
-	var percentageStr = $elm$core$String$fromInt(percentage) + '%';
-	return percentageStr + (' {' + (propertiesStr + '}'));
-};
-var $rtfeldman$elm_css$Css$Internal$compileKeyframes = function (tuples) {
-	return A2(
-		$elm$core$String$join,
-		'\n\n',
-		A2($elm$core$List$map, $rtfeldman$elm_css$Css$Internal$printKeyframeSelector, tuples));
-};
-var $rtfeldman$elm_css$Css$Animations$keyframes = function (tuples) {
-	return $elm$core$List$isEmpty(tuples) ? {keyframes: $rtfeldman$elm_css$Css$Structure$Compatible, none: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'none'} : {
-		keyframes: $rtfeldman$elm_css$Css$Structure$Compatible,
-		none: $rtfeldman$elm_css$Css$Structure$Compatible,
-		value: $rtfeldman$elm_css$Css$Internal$compileKeyframes(tuples)
-	};
-};
-var $rtfeldman$elm_css$Css$UnitlessFloat = {$: 'UnitlessFloat'};
-var $rtfeldman$elm_css$Css$num = function (val) {
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$cursor_pointer = A2($rtfeldman$elm_css$Css$property, 'cursor', 'pointer');
+var $rtfeldman$elm_css$Css$UnitlessInteger = {$: 'UnitlessInteger'};
+var $rtfeldman$elm_css$Css$int = function (val) {
 	return {
+		fontWeight: $rtfeldman$elm_css$Css$Structure$Compatible,
+		intOrAuto: $rtfeldman$elm_css$Css$Structure$Compatible,
 		lengthOrNumber: $rtfeldman$elm_css$Css$Structure$Compatible,
 		lengthOrNumberOrAutoOrNoneOrContent: $rtfeldman$elm_css$Css$Structure$Compatible,
 		number: $rtfeldman$elm_css$Css$Structure$Compatible,
 		numberOrInfinite: $rtfeldman$elm_css$Css$Structure$Compatible,
 		numericValue: val,
 		unitLabel: '',
-		units: $rtfeldman$elm_css$Css$UnitlessFloat,
-		value: $elm$core$String$fromFloat(val)
+		units: $rtfeldman$elm_css$Css$UnitlessInteger,
+		value: $elm$core$String$fromInt(val)
 	};
 };
-var $rtfeldman$elm_css$Css$PercentageUnits = {$: 'PercentageUnits'};
-var $rtfeldman$elm_css$Css$pct = A2($rtfeldman$elm_css$Css$Internal$lengthConverter, $rtfeldman$elm_css$Css$PercentageUnits, '%');
-var $rtfeldman$elm_css$Css$Internal$Property = function (a) {
-	return {$: 'Property', a: a};
-};
-var $rtfeldman$elm_css$Css$Animations$property = F2(
-	function (key, value) {
-		return $rtfeldman$elm_css$Css$Internal$Property(key + (':' + value));
+var $rtfeldman$elm_css$Css$left = $rtfeldman$elm_css$Css$prop1('left');
+var $rtfeldman$elm_css$VirtualDom$Styled$on = F2(
+	function (eventName, handler) {
+		return A3(
+			$rtfeldman$elm_css$VirtualDom$Styled$Attribute,
+			A2($elm$virtual_dom$VirtualDom$on, eventName, handler),
+			_List_Nil,
+			'');
 	});
-var $rtfeldman$elm_css$Css$cssFunction = F2(
-	function (funcName, args) {
-		return funcName + ('(' + (A2($elm$core$String$join, ', ', args) + ')'));
+var $rtfeldman$elm_css$Html$Styled$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$rtfeldman$elm_css$VirtualDom$Styled$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var $rtfeldman$elm_css$Css$rotate = function (_v0) {
-	var value = _v0.value;
-	return {
-		transform: $rtfeldman$elm_css$Css$Structure$Compatible,
-		value: A2(
-			$rtfeldman$elm_css$Css$cssFunction,
-			'rotate',
-			_List_fromArray(
-				[value]))
-	};
+var $rtfeldman$elm_css$Html$Styled$Events$onClick = function (msg) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
 };
-var $rtfeldman$elm_css$Css$sec = function (amount) {
-	return {
-		duration: $rtfeldman$elm_css$Css$Structure$Compatible,
-		value: $elm$core$String$fromFloat(amount) + 's'
-	};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$origin_bottom_right = A2($rtfeldman$elm_css$Css$property, 'transform-origin', 'bottom right');
+var $rtfeldman$elm_css$Css$transparent = {color: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'transparent'};
+var $rtfeldman$elm_css$Css$url = function (urlValue) {
+	return {backgroundImage: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'url(' + (urlValue + ')')};
 };
-var $rtfeldman$elm_css$Css$valuesOrNone = function (list) {
-	return $elm$core$List$isEmpty(list) ? {value: 'none'} : {
-		value: A2(
-			$elm$core$String$join,
-			' ',
-			A2(
-				$elm$core$List$map,
-				function ($) {
-					return $.value;
-				},
-				list))
-	};
-};
-var $rtfeldman$elm_css$Css$transforms = A2(
-	$elm$core$Basics$composeL,
-	$rtfeldman$elm_css$Css$prop1('transform'),
-	$rtfeldman$elm_css$Css$valuesOrNone);
-var $rtfeldman$elm_css$Css$transform = function (only) {
-	return $rtfeldman$elm_css$Css$transforms(
+var $rtfeldman$elm_css$Css$zIndex = $rtfeldman$elm_css$Css$prop1('z-index');
+var $author$project$WheelofFortune$viewButtonBonusGame = function (model) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$button,
 		_List_fromArray(
-			[only]));
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$fixed,
+						$rtfeldman$elm_css$Css$zIndex(
+						$rtfeldman$elm_css$Css$int(999999)),
+						A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$px, 100),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$cursor_pointer,
+						$rtfeldman$elm_css$Css$left(
+						$rtfeldman$elm_css$Css$px(10)),
+						$rtfeldman$elm_css$Css$bottom(
+						$rtfeldman$elm_css$Css$px(-30)),
+						$rtfeldman$elm_css$Css$backgroundImage(
+						$rtfeldman$elm_css$Css$url('img/gift.png')),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_center,
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_contain,
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$origin_bottom_right,
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_no_repeat,
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_0,
+						$rtfeldman$elm_css$Css$backgroundColor($rtfeldman$elm_css$Css$transparent)
+					])),
+				$rtfeldman$elm_css$Html$Styled$Events$onClick(
+				$author$project$WheelofFortune$Modal(true))
+			]),
+		_List_Nil);
+};
+var $author$project$WheelofFortune$viewBonusesGame = function (model) {
+	var _v0 = model.isOpen;
+	if (_v0) {
+		return A2($rtfeldman$elm_css$Html$Styled$div, _List_Nil, _List_Nil);
+	} else {
+		return $author$project$WheelofFortune$viewButtonBonusGame(model);
+	}
 };
 var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute = A2($rtfeldman$elm_css$Css$property, 'position', 'absolute');
-var $rtfeldman$elm_css$Css$prop3 = F4(
-	function (key, argA, argB, argC) {
-		return A2(
-			$rtfeldman$elm_css$Css$property,
-			key,
-			A2(
-				$elm$core$String$join,
-				' ',
-				_List_fromArray(
-					[argA.value, argB.value, argC.value])));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_gray_400 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, '--tw-bg-opacity', '1'),
+			A2($rtfeldman$elm_css$Css$property, 'background-color', 'rgba(156, 163, 175, var(--tw-bg-opacity))')
+		]));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$flex = A2($rtfeldman$elm_css$Css$property, 'display', 'flex');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$items_center = A2($rtfeldman$elm_css$Css$property, 'align-items', 'center');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$left_0 = A2($rtfeldman$elm_css$Css$property, 'left', '0px');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$relative = A2($rtfeldman$elm_css$Css$property, 'position', 'relative');
+var $rtfeldman$elm_css$Css$right = $rtfeldman$elm_css$Css$prop1('right');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$rounded_full = A2($rtfeldman$elm_css$Css$property, 'border-radius', '9999px');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_center = A2($rtfeldman$elm_css$Css$property, 'text-align', 'center');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_left = A2($rtfeldman$elm_css$Css$property, 'text-align', 'left');
+var $author$project$WheelofFortune$InputtedPhone = function (a) {
+	return {$: 'InputtedPhone', a: a};
+};
+var $author$project$WheelofFortune$StartFortune = {$: 'StartFortune'};
+var $author$project$WheelofFortune$boolCss = F2(
+	function (is, style) {
+		return is ? style : $rtfeldman$elm_css$Css$batch(_List_Nil);
 	});
-var $rtfeldman$elm_css$Css$border3 = $rtfeldman$elm_css$Css$prop3('border');
-var $rtfeldman$elm_css$Css$borderRadius = $rtfeldman$elm_css$Css$prop1('border-radius');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_2 = A2($rtfeldman$elm_css$Css$property, 'border-width', '2px');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_red_700 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, '--tw-border-opacity', '1'),
+			A2($rtfeldman$elm_css$Css$property, 'border-color', 'rgba(185, 28, 28, var(--tw-border-opacity))')
+		]));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$col_span_2 = A2($rtfeldman$elm_css$Css$property, 'grid-column', 'span 2 / span 2');
+var $rtfeldman$elm_css$Css$fontSize = $rtfeldman$elm_css$Css$prop1('font-size');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$gap_3 = A2($rtfeldman$elm_css$Css$property, 'gap', '0.75rem');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$gap_4 = A2($rtfeldman$elm_css$Css$property, 'gap', '1rem');
+var $elm_community$list_extra$List$Extra$getAt = F2(
+	function (idx, xs) {
+		return (idx < 0) ? $elm$core$Maybe$Nothing : $elm$core$List$head(
+			A2($elm$core$List$drop, idx, xs));
+	});
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$grid = A2($rtfeldman$elm_css$Css$property, 'display', 'grid');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$grid_cols_2 = A2($rtfeldman$elm_css$Css$property, 'grid-template-columns', 'repeat(2, minmax(0, 1fr))');
 var $rtfeldman$elm_css$Css$withPrecedingHash = function (str) {
 	return A2($elm$core$String$startsWith, '#', str) ? str : A2(
 		$elm$core$String$cons,
@@ -13018,9 +13781,6 @@ var $rtfeldman$elm_css$Css$erroneousHex = function (str) {
 var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
 	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
-};
-var $elm$core$String$fromChar = function (_char) {
-	return A2($elm$core$String$cons, _char, '');
 };
 var $elm$core$Basics$pow = _Basics_pow;
 var $rtfeldman$elm_hex$Hex$fromStringHelp = F3(
@@ -13376,26 +14136,720 @@ var $rtfeldman$elm_css$Css$hex = function (str) {
 	}
 	return $rtfeldman$elm_css$Css$erroneousHex(str);
 };
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$overflow_hidden = A2($rtfeldman$elm_css$Css$property, 'overflow', 'hidden');
-var $rtfeldman$elm_css$Css$solid = {borderStyle: $rtfeldman$elm_css$Css$Structure$Compatible, textDecorationStyle: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'solid'};
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$h_full = A2($rtfeldman$elm_css$Css$property, 'height', '100%');
-var $rtfeldman$elm_css$Css$left = $rtfeldman$elm_css$Css$prop1('left');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$block = A2($rtfeldman$elm_css$Css$property, 'display', 'block');
-var $rtfeldman$elm_css$Css$UnitlessInteger = {$: 'UnitlessInteger'};
-var $rtfeldman$elm_css$Css$int = function (val) {
+var $rtfeldman$elm_css$Html$Styled$input = $rtfeldman$elm_css$Html$Styled$node('input');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$mr_2 = A2($rtfeldman$elm_css$Css$property, 'margin-right', '0.5rem');
+var $rtfeldman$elm_css$Html$Styled$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var $rtfeldman$elm_css$Html$Styled$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$rtfeldman$elm_css$VirtualDom$Styled$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $rtfeldman$elm_css$Html$Styled$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
+var $rtfeldman$elm_css$Html$Styled$Events$onInput = function (tagger) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$Events$stopPropagationOn,
+		'input',
+		A2(
+			$elm$json$Json$Decode$map,
+			$rtfeldman$elm_css$Html$Styled$Events$alwaysStop,
+			A2($elm$json$Json$Decode$map, tagger, $rtfeldman$elm_css$Html$Styled$Events$targetValue)));
+};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$opacity_20 = A2($rtfeldman$elm_css$Css$property, 'opacity', '0.2');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$outline_none = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'outline', '2px solid transparent'),
+			A2($rtfeldman$elm_css$Css$property, 'outline-offset', '2px')
+		]));
+var $rtfeldman$elm_css$Html$Styled$Attributes$placeholder = $rtfeldman$elm_css$Html$Styled$Attributes$stringProperty('placeholder');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$px_2 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'padding-left', '0.5rem'),
+			A2($rtfeldman$elm_css$Css$property, 'padding-right', '0.5rem')
+		]));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$px_4 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'padding-left', '1rem'),
+			A2($rtfeldman$elm_css$Css$property, 'padding-right', '1rem')
+		]));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$py_2 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'padding-top', '0.5rem'),
+			A2($rtfeldman$elm_css$Css$property, 'padding-bottom', '0.5rem')
+		]));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_lg = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'font-size', '1.125rem'),
+			A2($rtfeldman$elm_css$Css$property, 'line-height', '1.75rem')
+		]));
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_white = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, '--tw-text-opacity', '1'),
+			A2($rtfeldman$elm_css$Css$property, 'color', 'rgba(255, 255, 255, var(--tw-text-opacity))')
+		]));
+var $author$project$WheelofFortune$styleButton = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_center,
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_lg,
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$px_4,
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$py_2,
+			$rtfeldman$elm_css$Css$backgroundColor(
+			$rtfeldman$elm_css$Css$hex('#feffff12')),
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_white,
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_0,
+			$rtfeldman$elm_css$Css$fontFamilies(
+			_List_fromArray(
+				[
+					$rtfeldman$elm_css$Css$qt('IBM Plex Sans'),
+					function ($) {
+					return $.value;
+				}($rtfeldman$elm_css$Css$sansSerif)
+				])),
+			$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$cursor_pointer
+		]));
+var $rtfeldman$elm_css$VirtualDom$Styled$Unstyled = function (a) {
+	return {$: 'Unstyled', a: a};
+};
+var $rtfeldman$elm_css$VirtualDom$Styled$text = function (str) {
+	return $rtfeldman$elm_css$VirtualDom$Styled$Unstyled(
+		$elm$virtual_dom$VirtualDom$text(str));
+};
+var $rtfeldman$elm_css$Html$Styled$text = $rtfeldman$elm_css$VirtualDom$Styled$text;
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_base = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'font-size', '1rem'),
+			A2($rtfeldman$elm_css$Css$property, 'line-height', '1.5rem')
+		]));
+var $rtfeldman$elm_css$Html$Styled$Attributes$type_ = $rtfeldman$elm_css$Html$Styled$Attributes$stringProperty('type');
+var $rtfeldman$elm_css$Html$Styled$Attributes$value = $rtfeldman$elm_css$Html$Styled$Attributes$stringProperty('value');
+var $rtfeldman$elm_css$Html$Styled$br = $rtfeldman$elm_css$Html$Styled$node('br');
+var $elm$core$String$lines = _String_lines;
+var $author$project$WheelofFortune$htmlAddedBrFromString = function (str) {
+	return A2(
+		$elm$core$List$intersperse,
+		A2($rtfeldman$elm_css$Html$Styled$br, _List_Nil, _List_Nil),
+		A2(
+			$elm$core$List$map,
+			$rtfeldman$elm_css$Html$Styled$text,
+			$elm$core$String$lines(str)));
+};
+var $author$project$WheelofFortune$viewDesc = function (str) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_lg]))
+			]),
+		$author$project$WheelofFortune$htmlAddedBrFromString(str));
+};
+var $rtfeldman$elm_css$Css$animationDuration = function (arg) {
+	return A2($rtfeldman$elm_css$Css$prop1, 'animation-duration', arg);
+};
+var $rtfeldman$elm_css$Css$Preprocess$WithKeyframes = function (a) {
+	return {$: 'WithKeyframes', a: a};
+};
+var $rtfeldman$elm_css$Css$animationName = function (arg) {
+	return ((arg.value === 'none') || ((arg.value === 'inherit') || ((arg.value === 'unset') || (arg.value === 'initial')))) ? A2($rtfeldman$elm_css$Css$prop1, 'animation-name', arg) : $rtfeldman$elm_css$Css$Preprocess$WithKeyframes(arg.value);
+};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_white = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, '--tw-bg-opacity', '1'),
+			A2($rtfeldman$elm_css$Css$property, 'background-color', 'rgba(255, 255, 255, var(--tw-bg-opacity))')
+		]));
+var $rtfeldman$elm_css$Css$Internal$printKeyframeSelector = function (_v0) {
+	var percentage = _v0.a;
+	var properties = _v0.b;
+	var propertiesStr = A2(
+		$elm$core$String$join,
+		'',
+		A2(
+			$elm$core$List$map,
+			function (_v1) {
+				var prop = _v1.a;
+				return prop + ';';
+			},
+			properties));
+	var percentageStr = $elm$core$String$fromInt(percentage) + '%';
+	return percentageStr + (' {' + (propertiesStr + '}'));
+};
+var $rtfeldman$elm_css$Css$Internal$compileKeyframes = function (tuples) {
+	return A2(
+		$elm$core$String$join,
+		'\n\n',
+		A2($elm$core$List$map, $rtfeldman$elm_css$Css$Internal$printKeyframeSelector, tuples));
+};
+var $rtfeldman$elm_css$Css$Animations$keyframes = function (tuples) {
+	return $elm$core$List$isEmpty(tuples) ? {keyframes: $rtfeldman$elm_css$Css$Structure$Compatible, none: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'none'} : {
+		keyframes: $rtfeldman$elm_css$Css$Structure$Compatible,
+		none: $rtfeldman$elm_css$Css$Structure$Compatible,
+		value: $rtfeldman$elm_css$Css$Internal$compileKeyframes(tuples)
+	};
+};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$mx_auto = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'margin-left', 'auto'),
+			A2($rtfeldman$elm_css$Css$property, 'margin-right', 'auto')
+		]));
+var $rtfeldman$elm_css$Css$Preprocess$ExtendSelector = F2(
+	function (a, b) {
+		return {$: 'ExtendSelector', a: a, b: b};
+	});
+var $rtfeldman$elm_css$Css$Structure$PseudoClassSelector = function (a) {
+	return {$: 'PseudoClassSelector', a: a};
+};
+var $rtfeldman$elm_css$Css$pseudoClass = function (_class) {
+	return $rtfeldman$elm_css$Css$Preprocess$ExtendSelector(
+		$rtfeldman$elm_css$Css$Structure$PseudoClassSelector(_class));
+};
+var $rtfeldman$elm_css$Css$nthChild = function (str) {
+	return $rtfeldman$elm_css$Css$pseudoClass('nth-child(' + (str + ')'));
+};
+var $rtfeldman$elm_css$Css$Internal$Property = function (a) {
+	return {$: 'Property', a: a};
+};
+var $rtfeldman$elm_css$Css$Animations$property = F2(
+	function (key, value) {
+		return $rtfeldman$elm_css$Css$Internal$Property(key + (':' + value));
+	});
+var $rtfeldman$elm_css$Css$sec = function (amount) {
 	return {
-		fontWeight: $rtfeldman$elm_css$Css$Structure$Compatible,
-		intOrAuto: $rtfeldman$elm_css$Css$Structure$Compatible,
+		duration: $rtfeldman$elm_css$Css$Structure$Compatible,
+		value: $elm$core$String$fromFloat(amount) + 's'
+	};
+};
+var $rtfeldman$elm_css$Css$top = $rtfeldman$elm_css$Css$prop1('top');
+var $author$project$WheelofFortune$viewLoader = function () {
+	var animation = function (num) {
+		switch (num) {
+			case 1:
+				return _List_fromArray(
+					[
+						A2($rtfeldman$elm_css$Css$property, 'animation-iteration-count', 'infinite'),
+						$rtfeldman$elm_css$Css$animationDuration(
+						$rtfeldman$elm_css$Css$sec(0.6)),
+						$rtfeldman$elm_css$Css$animationName(
+						$rtfeldman$elm_css$Css$Animations$keyframes(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									0,
+									_List_fromArray(
+										[
+											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'scale(0)')
+										])),
+									_Utils_Tuple2(
+									100,
+									_List_fromArray(
+										[
+											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'scale(1)')
+										]))
+								])))
+					]);
+			case 2:
+				return _List_fromArray(
+					[
+						A2($rtfeldman$elm_css$Css$property, 'animation-iteration-count', 'infinite'),
+						$rtfeldman$elm_css$Css$animationDuration(
+						$rtfeldman$elm_css$Css$sec(0.6)),
+						$rtfeldman$elm_css$Css$animationName(
+						$rtfeldman$elm_css$Css$Animations$keyframes(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									0,
+									_List_fromArray(
+										[
+											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'translate(0,0)')
+										])),
+									_Utils_Tuple2(
+									100,
+									_List_fromArray(
+										[
+											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'translate(24px,0)')
+										]))
+								])))
+					]);
+			case 3:
+				return _List_fromArray(
+					[
+						A2($rtfeldman$elm_css$Css$property, 'animation-iteration-count', 'infinite'),
+						$rtfeldman$elm_css$Css$animationDuration(
+						$rtfeldman$elm_css$Css$sec(0.6)),
+						$rtfeldman$elm_css$Css$animationName(
+						$rtfeldman$elm_css$Css$Animations$keyframes(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									0,
+									_List_fromArray(
+										[
+											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'scale(1)')
+										])),
+									_Utils_Tuple2(
+									100,
+									_List_fromArray(
+										[
+											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'scale(0)')
+										]))
+								])))
+					]);
+			default:
+				return _List_Nil;
+		}
+	};
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$relative,
+						A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$px, 80),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$mx_auto,
+						$rtfeldman$elm_css$Css$Global$descendants(
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Css$Global$typeSelector,
+								'div',
+								_List_fromArray(
+									[
+										$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
+										$rtfeldman$elm_css$Css$top(
+										$rtfeldman$elm_css$Css$px(33)),
+										A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$px, 13),
+										$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$rounded_full,
+										$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_white,
+										A2($rtfeldman$elm_css$Css$property, 'animation-timing-function', 'cubic-bezier(0,1,1,0)')
+									]))
+							]))
+					]))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Css$nthChild,
+								'1',
+								_Utils_ap(
+									animation(1),
+									_List_fromArray(
+										[
+											$rtfeldman$elm_css$Css$left(
+											$rtfeldman$elm_css$Css$px(8))
+										])))
+							]))
+					]),
+				_List_Nil),
+				A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Css$nthChild,
+								'2',
+								_Utils_ap(
+									animation(2),
+									_List_fromArray(
+										[
+											$rtfeldman$elm_css$Css$left(
+											$rtfeldman$elm_css$Css$px(8))
+										])))
+							]))
+					]),
+				_List_Nil),
+				A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Css$nthChild,
+								'3',
+								_Utils_ap(
+									animation(2),
+									_List_fromArray(
+										[
+											$rtfeldman$elm_css$Css$left(
+											$rtfeldman$elm_css$Css$px(32))
+										])))
+							]))
+					]),
+				_List_Nil),
+				A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Css$nthChild,
+								'4',
+								_Utils_ap(
+									animation(3),
+									_List_fromArray(
+										[
+											$rtfeldman$elm_css$Css$left(
+											$rtfeldman$elm_css$Css$px(56))
+										])))
+							]))
+					]),
+				_List_Nil)
+			]));
+}();
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$font_black = A2($rtfeldman$elm_css$Css$property, 'font-weight', '900');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_5xl = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'font-size', '3rem'),
+			A2($rtfeldman$elm_css$Css$property, 'line-height', '1')
+		]));
+var $author$project$WheelofFortune$viewTitle = function (str) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$font_black, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_5xl]))
+			]),
+		$author$project$WheelofFortune$htmlAddedBrFromString(str));
+};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$w_full = A2($rtfeldman$elm_css$Css$property, 'width', '100%');
+var $author$project$WheelofFortune$viewFormAndStepClient = function (model) {
+	var _v0 = model.step;
+	switch (_v0) {
+		case 1:
+			return A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$grid, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$gap_4]))
+					]),
+				_List_fromArray(
+					[
+						$author$project$WheelofFortune$viewTitle('Крутите \nколесо!'),
+						$author$project$WheelofFortune$viewDesc('Введите свой номер телефона, \nчтобы выиграть приз!'),
+						A2(
+						$rtfeldman$elm_css$Html$Styled$div,
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Html$Styled$Attributes$css(
+								_List_fromArray(
+									[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$grid, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$gap_3, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$grid_cols_2]))
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Html$Styled$div,
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Html$Styled$Attributes$css(
+										_List_fromArray(
+											[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$col_span_2, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$flex, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$items_center]))
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$rtfeldman$elm_css$Html$Styled$div,
+										_List_fromArray(
+											[
+												$rtfeldman$elm_css$Html$Styled$Attributes$css(
+												_List_fromArray(
+													[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$mr_2]))
+											]),
+										_List_fromArray(
+											[
+												$rtfeldman$elm_css$Html$Styled$text('+7')
+											])),
+										A2(
+										$rtfeldman$elm_css$Html$Styled$input,
+										_List_fromArray(
+											[
+												$rtfeldman$elm_css$Html$Styled$Events$onInput($author$project$WheelofFortune$InputtedPhone),
+												$rtfeldman$elm_css$Html$Styled$Attributes$value(model.phone),
+												$rtfeldman$elm_css$Html$Styled$Attributes$type_('text'),
+												$rtfeldman$elm_css$Html$Styled$Attributes$placeholder('Введите номер телефона'),
+												$rtfeldman$elm_css$Html$Styled$Attributes$css(
+												_List_fromArray(
+													[
+														$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$w_full,
+														$rtfeldman$elm_css$Css$height(
+														$rtfeldman$elm_css$Css$px(50)),
+														$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_0,
+														$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$outline_none,
+														$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$px_2,
+														$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_base,
+														$rtfeldman$elm_css$Css$fontFamilies(
+														_List_fromArray(
+															[
+																$rtfeldman$elm_css$Css$qt('IBM Plex Sans'),
+																function ($) {
+																return $.value;
+															}($rtfeldman$elm_css$Css$sansSerif)
+															])),
+														A2(
+														$author$project$WheelofFortune$boolCss,
+														model.errorPhone,
+														$rtfeldman$elm_css$Css$batch(
+															_List_fromArray(
+																[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_2, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$border_red_700])))
+													]))
+											]),
+										_List_Nil)
+									])),
+								A2(
+								$rtfeldman$elm_css$Html$Styled$button,
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Html$Styled$Events$onClick($author$project$WheelofFortune$StartFortune),
+										$rtfeldman$elm_css$Html$Styled$Attributes$css(
+										_List_fromArray(
+											[
+												$author$project$WheelofFortune$styleButton,
+												$rtfeldman$elm_css$Css$backgroundColor(
+												$rtfeldman$elm_css$Css$hex('#252ef7'))
+											]))
+									]),
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Html$Styled$text('Крутить')
+									])),
+								A2(
+								$rtfeldman$elm_css$Html$Styled$button,
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Html$Styled$Events$onClick(
+										$author$project$WheelofFortune$Modal(false)),
+										$rtfeldman$elm_css$Html$Styled$Attributes$css(
+										_List_fromArray(
+											[$author$project$WheelofFortune$styleButton]))
+									]),
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Html$Styled$text('Закрыть')
+									]))
+							])),
+						A2(
+						$rtfeldman$elm_css$Html$Styled$div,
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Html$Styled$Attributes$css(
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Css$fontSize(
+										$rtfeldman$elm_css$Css$px(10)),
+										$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$opacity_20
+									]))
+							]),
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Html$Styled$text('Нажимая на кнопку, вы даете согласие на обработку своих персональных данных и соглашаетесь с Политикой конфиденциальности')
+							]))
+					]));
+		case 2:
+			return $author$project$WheelofFortune$viewLoader;
+		case 3:
+			var getTitleWinnerBonus = A2($elm_community$list_extra$List$Extra$getAt, model.winnerID, model.items);
+			if (getTitleWinnerBonus.$ === 'Just') {
+				var i = getTitleWinnerBonus.a;
+				return A2(
+					$rtfeldman$elm_css$Html$Styled$div,
+					_List_fromArray(
+						[
+							$rtfeldman$elm_css$Html$Styled$Attributes$css(
+							_List_fromArray(
+								[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$grid, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$gap_4]))
+						]),
+					_List_fromArray(
+						[
+							$author$project$WheelofFortune$viewTitle(i.title),
+							$author$project$WheelofFortune$viewDesc('Поздравляем! \nмы скоро свяжемся с Вами!')
+						]));
+			} else {
+				return A2(
+					$rtfeldman$elm_css$Html$Styled$div,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$author$project$WheelofFortune$viewTitle('Error')
+						]));
+			}
+		default:
+			return A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$text('Error')
+					]));
+	}
+};
+var $rtfeldman$elm_css$Css$animationIterationCount = function (arg) {
+	return A2($rtfeldman$elm_css$Css$prop1, 'animation-iteration-count', arg);
+};
+var $rtfeldman$elm_css$Css$angleConverter = F2(
+	function (suffix, angleVal) {
+		return {
+			angle: $rtfeldman$elm_css$Css$Structure$Compatible,
+			angleOrDirection: $rtfeldman$elm_css$Css$Structure$Compatible,
+			value: _Utils_ap(
+				$elm$core$String$fromFloat(angleVal),
+				suffix)
+		};
+	});
+var $rtfeldman$elm_css$Css$deg = $rtfeldman$elm_css$Css$angleConverter('deg');
+var $rtfeldman$elm_css$Css$UnitlessFloat = {$: 'UnitlessFloat'};
+var $rtfeldman$elm_css$Css$num = function (val) {
+	return {
 		lengthOrNumber: $rtfeldman$elm_css$Css$Structure$Compatible,
 		lengthOrNumberOrAutoOrNoneOrContent: $rtfeldman$elm_css$Css$Structure$Compatible,
 		number: $rtfeldman$elm_css$Css$Structure$Compatible,
 		numberOrInfinite: $rtfeldman$elm_css$Css$Structure$Compatible,
 		numericValue: val,
 		unitLabel: '',
-		units: $rtfeldman$elm_css$Css$UnitlessInteger,
-		value: $elm$core$String$fromInt(val)
+		units: $rtfeldman$elm_css$Css$UnitlessFloat,
+		value: $elm$core$String$fromFloat(val)
 	};
 };
+var $rtfeldman$elm_css$Css$PercentageUnits = {$: 'PercentageUnits'};
+var $rtfeldman$elm_css$Css$pct = A2($rtfeldman$elm_css$Css$Internal$lengthConverter, $rtfeldman$elm_css$Css$PercentageUnits, '%');
+var $rtfeldman$elm_css$Css$cssFunction = F2(
+	function (funcName, args) {
+		return funcName + ('(' + (A2($elm$core$String$join, ', ', args) + ')'));
+	});
+var $rtfeldman$elm_css$Css$rotate = function (_v0) {
+	var value = _v0.value;
+	return {
+		transform: $rtfeldman$elm_css$Css$Structure$Compatible,
+		value: A2(
+			$rtfeldman$elm_css$Css$cssFunction,
+			'rotate',
+			_List_fromArray(
+				[value]))
+	};
+};
+var $author$project$WheelofFortune$styleWinner = function (id) {
+	var rotate = function (endRotate) {
+		return $rtfeldman$elm_css$Css$batch(
+			_List_fromArray(
+				[
+					$rtfeldman$elm_css$Css$animationName(
+					$rtfeldman$elm_css$Css$Animations$keyframes(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								0,
+								_List_fromArray(
+									[
+										A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'rotate(-22.5deg)')
+									])),
+								_Utils_Tuple2(
+								100,
+								_List_fromArray(
+									[
+										A2(
+										$rtfeldman$elm_css$Css$Animations$property,
+										'transform',
+										'rotate(' + ($elm$core$String$fromFloat(endRotate) + 'deg)'))
+									]))
+							])))
+				]));
+	};
+	switch (id) {
+		case 0:
+			return rotate(967);
+		case 1:
+			return rotate(922.5);
+		case 2:
+			return rotate(1237.5);
+		case 3:
+			return rotate(1192.5);
+		case 4:
+			return rotate(1147.5);
+		case 5:
+			return rotate(1102.5);
+		case 6:
+			return rotate(1057.5);
+		case 7:
+			return rotate(1012.5);
+		default:
+			return $rtfeldman$elm_css$Css$batch(_List_Nil);
+	}
+};
+var $rtfeldman$elm_css$Css$valuesOrNone = function (list) {
+	return $elm$core$List$isEmpty(list) ? {value: 'none'} : {
+		value: A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				function ($) {
+					return $.value;
+				},
+				list))
+	};
+};
+var $rtfeldman$elm_css$Css$transforms = A2(
+	$elm$core$Basics$composeL,
+	$rtfeldman$elm_css$Css$prop1('transform'),
+	$rtfeldman$elm_css$Css$valuesOrNone);
+var $rtfeldman$elm_css$Css$transform = function (only) {
+	return $rtfeldman$elm_css$Css$transforms(
+		_List_fromArray(
+			[only]));
+};
+var $rtfeldman$elm_css$Css$prop3 = F4(
+	function (key, argA, argB, argC) {
+		return A2(
+			$rtfeldman$elm_css$Css$property,
+			key,
+			A2(
+				$elm$core$String$join,
+				' ',
+				_List_fromArray(
+					[argA.value, argB.value, argC.value])));
+	});
+var $rtfeldman$elm_css$Css$border3 = $rtfeldman$elm_css$Css$prop3('border');
+var $rtfeldman$elm_css$Css$borderRadius = $rtfeldman$elm_css$Css$prop1('border-radius');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$overflow_hidden = A2($rtfeldman$elm_css$Css$property, 'overflow', 'hidden');
+var $rtfeldman$elm_css$Css$solid = {borderStyle: $rtfeldman$elm_css$Css$Structure$Compatible, textDecorationStyle: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'solid'};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$h_full = A2($rtfeldman$elm_css$Css$property, 'height', '100%');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$block = A2($rtfeldman$elm_css$Css$property, 'display', 'block');
 var $rtfeldman$elm_css$Css$prop4 = F5(
 	function (key, argA, argB, argC, argD) {
 		return A2(
@@ -13409,7 +14863,6 @@ var $rtfeldman$elm_css$Css$prop4 = F5(
 	});
 var $rtfeldman$elm_css$Css$padding4 = $rtfeldman$elm_css$Css$prop4('padding');
 var $rtfeldman$elm_css$Html$Styled$span = $rtfeldman$elm_css$Html$Styled$node('span');
-var $rtfeldman$elm_css$Css$top = $rtfeldman$elm_css$Css$prop1('top');
 var $author$project$WheelofFortune$styleSection = function (id) {
 	switch (id) {
 		case 0:
@@ -13574,31 +15027,8 @@ var $author$project$WheelofFortune$styleSlice = function (id) {
 			return $rtfeldman$elm_css$Css$batch(_List_Nil);
 	}
 };
-var $rtfeldman$elm_css$VirtualDom$Styled$Unstyled = function (a) {
-	return {$: 'Unstyled', a: a};
-};
-var $rtfeldman$elm_css$VirtualDom$Styled$text = function (str) {
-	return $rtfeldman$elm_css$VirtualDom$Styled$Unstyled(
-		$elm$virtual_dom$VirtualDom$text(str));
-};
-var $rtfeldman$elm_css$Html$Styled$text = $rtfeldman$elm_css$VirtualDom$Styled$text;
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_base = $rtfeldman$elm_css$Css$batch(
-	_List_fromArray(
-		[
-			A2($rtfeldman$elm_css$Css$property, 'font-size', '1rem'),
-			A2($rtfeldman$elm_css$Css$property, 'line-height', '1.5rem')
-		]));
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_center = A2($rtfeldman$elm_css$Css$property, 'text-align', 'center');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_white = $rtfeldman$elm_css$Css$batch(
-	_List_fromArray(
-		[
-			A2($rtfeldman$elm_css$Css$property, '--tw-text-opacity', '1'),
-			A2($rtfeldman$elm_css$Css$property, 'color', 'rgba(255, 255, 255, var(--tw-text-opacity))')
-		]));
 var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$w_1over2 = A2($rtfeldman$elm_css$Css$property, 'width', '50%');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$w_full = A2($rtfeldman$elm_css$Css$property, 'width', '100%');
-var $rtfeldman$elm_css$Css$zIndex = $rtfeldman$elm_css$Css$prop1('z-index');
-var $author$project$WheelofFortune$viewWheellSection = F2(
+var $author$project$WheelofFortune$viewWheelSection = F2(
 	function (id, i) {
 		return A2(
 			$rtfeldman$elm_css$Html$Styled$div,
@@ -13663,7 +15093,7 @@ var $author$project$WheelofFortune$viewWheellSection = F2(
 						]))
 				]));
 	});
-var $author$project$WheelofFortune$viewWheellPart = F2(
+var $author$project$WheelofFortune$viewWheelPart = F2(
 	function (items, group) {
 		var pos = group ? $rtfeldman$elm_css$Css$left(
 			$rtfeldman$elm_css$Css$px(0)) : $rtfeldman$elm_css$Css$left(
@@ -13680,48 +15110,67 @@ var $author$project$WheelofFortune$viewWheellPart = F2(
 			A2(
 				$elm$core$List$indexedMap,
 				function (id) {
-					return $author$project$WheelofFortune$viewWheellSection(id + num);
+					return $author$project$WheelofFortune$viewWheelSection(id + num);
 				},
 				items));
 	});
-var $author$project$WheelofFortune$viewWheellInner = A2(
-	$rtfeldman$elm_css$Html$Styled$div,
-	_List_fromArray(
-		[
-			$rtfeldman$elm_css$Html$Styled$Attributes$css(
-			_List_fromArray(
-				[
-					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
-					A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$pct, 100),
-					$rtfeldman$elm_css$Css$borderRadius(
-					$rtfeldman$elm_css$Css$pct(50)),
-					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$overflow_hidden,
-					A3(
-					$rtfeldman$elm_css$Css$border3,
-					$rtfeldman$elm_css$Css$px(18),
-					$rtfeldman$elm_css$Css$solid,
-					$rtfeldman$elm_css$Css$hex('#fff'))
-				]))
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$author$project$WheelofFortune$viewWheellPart,
-			A2($elm$core$List$take, 4, $author$project$WheelofFortune$initItems),
-			true),
-			A2(
-			$author$project$WheelofFortune$viewWheellPart,
-			A2($elm$core$List$drop, 4, $author$project$WheelofFortune$initItems),
-			false)
-		]));
-var $author$project$WheelofFortune$viewWheel = function () {
-	var wait = $rtfeldman$elm_css$Css$batch(
+var $author$project$WheelofFortune$viewWheelInner = function (items) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
+						A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$pct, 100),
+						$rtfeldman$elm_css$Css$borderRadius(
+						$rtfeldman$elm_css$Css$pct(50)),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$overflow_hidden,
+						A3(
+						$rtfeldman$elm_css$Css$border3,
+						$rtfeldman$elm_css$Css$px(18),
+						$rtfeldman$elm_css$Css$solid,
+						$rtfeldman$elm_css$Css$hex('#fff'))
+					]))
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$author$project$WheelofFortune$viewWheelPart,
+				A2($elm$core$List$take, 4, items),
+				true),
+				A2(
+				$author$project$WheelofFortune$viewWheelPart,
+				A2($elm$core$List$drop, 4, items),
+				false)
+			]));
+};
+var $author$project$WheelofFortune$viewWheel = function (model) {
+	var animat = model.isStartGame ? $author$project$WheelofFortune$styleWinner(model.winnerID) : $rtfeldman$elm_css$Css$batch(
 		_List_fromArray(
 			[
 				A2($rtfeldman$elm_css$Css$property, 'animation-timing-function', 'linear'),
 				A2($rtfeldman$elm_css$Css$property, 'animation-iteration-count', 'infinite'),
 				$rtfeldman$elm_css$Css$animationDuration(
-				$rtfeldman$elm_css$Css$sec(30))
+				$rtfeldman$elm_css$Css$sec(30)),
+				$rtfeldman$elm_css$Css$animationName(
+				$rtfeldman$elm_css$Css$Animations$keyframes(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							0,
+							_List_fromArray(
+								[
+									A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'rotate(0)')
+								])),
+							_Utils_Tuple2(
+							100,
+							_List_fromArray(
+								[
+									A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'rotate(360deg)')
+								]))
+						])))
 			]));
 	return A2(
 		$rtfeldman$elm_css$Html$Styled$div,
@@ -13741,29 +15190,14 @@ var $author$project$WheelofFortune$viewWheel = function () {
 						$rtfeldman$elm_css$Css$transform(
 						$rtfeldman$elm_css$Css$rotate(
 							$rtfeldman$elm_css$Css$deg(-22.5))),
-						wait,
-						$rtfeldman$elm_css$Css$animationName(
-						$rtfeldman$elm_css$Css$Animations$keyframes(
-							_List_fromArray(
-								[
-									_Utils_Tuple2(
-									0,
-									_List_fromArray(
-										[
-											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'rotate(0)')
-										])),
-									_Utils_Tuple2(
-									100,
-									_List_fromArray(
-										[
-											A2($rtfeldman$elm_css$Css$Animations$property, 'transform', 'rotate(360deg)')
-										]))
-								])))
+						animat
 					]))
 			]),
 		_List_fromArray(
-			[$author$project$WheelofFortune$viewWheellInner]));
-}();
+			[
+				$author$project$WheelofFortune$viewWheelInner(model.items)
+			]));
+};
 var $rtfeldman$elm_css$Css$borderColor4 = F4(
 	function (c1, c2, c3, c4) {
 		var value = A2(
@@ -13775,15 +15209,7 @@ var $rtfeldman$elm_css$Css$borderColor4 = F4(
 	});
 var $rtfeldman$elm_css$Css$borderStyle = $rtfeldman$elm_css$Css$prop1('border-style');
 var $rtfeldman$elm_css$Css$borderWidth4 = $rtfeldman$elm_css$Css$prop4('border-width');
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_y_0 = $rtfeldman$elm_css$Css$batch(
-	_List_fromArray(
-		[
-			A2($rtfeldman$elm_css$Css$property, 'top', '0px'),
-			A2($rtfeldman$elm_css$Css$property, 'bottom', '0px')
-		]));
 var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$m_auto = A2($rtfeldman$elm_css$Css$property, 'margin', 'auto');
-var $rtfeldman$elm_css$Css$right = $rtfeldman$elm_css$Css$prop1('right');
-var $rtfeldman$elm_css$Css$transparent = {color: $rtfeldman$elm_css$Css$Structure$Compatible, value: 'transparent'};
 var $author$project$WheelofFortune$viewWheelArrow = A2(
 	$rtfeldman$elm_css$Html$Styled$div,
 	_List_fromArray(
@@ -13816,12 +15242,6 @@ var $author$project$WheelofFortune$viewWheelArrow = A2(
 				]))
 		]),
 	_List_Nil);
-var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_white = $rtfeldman$elm_css$Css$batch(
-	_List_fromArray(
-		[
-			A2($rtfeldman$elm_css$Css$property, '--tw-bg-opacity', '1'),
-			A2($rtfeldman$elm_css$Css$property, 'background-color', 'rgba(255, 255, 255, var(--tw-bg-opacity))')
-		]));
 var $rtfeldman$elm_css$Css$boxShadow4 = $rtfeldman$elm_css$Css$prop4('box-shadow');
 var $author$project$WheelofFortune$viewWheelCenter = A2(
 	$rtfeldman$elm_css$Html$Styled$div,
@@ -13849,36 +15269,255 @@ var $author$project$WheelofFortune$viewWheelCenter = A2(
 				]))
 		]),
 	_List_Nil);
-var $author$project$WheelofFortune$viewWheelWrap = A2(
-	$rtfeldman$elm_css$Html$Styled$div,
-	_List_fromArray(
-		[
-			$rtfeldman$elm_css$Html$Styled$Attributes$css(
+var $author$project$WheelofFortune$viewWheelWrap = function (model) {
+	var rightWrap = function (content) {
+		return A2(
+			$rtfeldman$elm_css$Html$Styled$div,
 			_List_fromArray(
 				[
-					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$relative,
-					A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$px, 474),
-					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_gray_400,
-					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$rounded_full,
-					$rtfeldman$elm_css$Css$Global$descendants(
+					$rtfeldman$elm_css$Html$Styled$Attributes$css(
 					_List_fromArray(
 						[
-							A2(
-							$rtfeldman$elm_css$Css$Global$typeSelector,
-							'*',
-							_List_fromArray(
-								[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$box_border, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$leading_none, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_left]))
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_y_0,
+							$rtfeldman$elm_css$Css$left(
+							$rtfeldman$elm_css$Css$px(310)),
+							$rtfeldman$elm_css$Css$right(
+							$rtfeldman$elm_css$Css$px(50)),
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$flex,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$items_center,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_left,
+							$rtfeldman$elm_css$Css$zIndex(
+							$rtfeldman$elm_css$Css$int(2)),
+							$rtfeldman$elm_css$Css$maxWidth(
+							$rtfeldman$elm_css$Css$px(400))
 						]))
-				]))
-		]),
-	_List_fromArray(
-		[$author$project$WheelofFortune$viewWheelCenter, $author$project$WheelofFortune$viewWheelArrow, $author$project$WheelofFortune$viewWheel]));
-var $author$project$WheelofFortune$view = function (model) {
+				]),
+			_List_fromArray(
+				[content]));
+	};
+	var leftWrap = function (content) {
+		return A2(
+			$rtfeldman$elm_css$Html$Styled$div,
+			_List_fromArray(
+				[
+					$rtfeldman$elm_css$Html$Styled$Attributes$css(
+					_List_fromArray(
+						[
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_y_0,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$left_0,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$flex,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$items_center,
+							$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_center,
+							$rtfeldman$elm_css$Css$zIndex(
+							$rtfeldman$elm_css$Css$int(1))
+						]))
+				]),
+			_List_fromArray(
+				[content]));
+	};
 	return A2(
 		$rtfeldman$elm_css$Html$Styled$div,
 		_List_Nil,
 		_List_fromArray(
-			[$author$project$WheelofFortune$viewWheelWrap]));
+			[
+				leftWrap(
+				A2(
+					$rtfeldman$elm_css$Html$Styled$div,
+					_List_fromArray(
+						[
+							$rtfeldman$elm_css$Html$Styled$Attributes$css(
+							_List_fromArray(
+								[
+									$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$relative,
+									A2($author$project$WheelofFortune$cubeCss, $rtfeldman$elm_css$Css$px, 474),
+									$rtfeldman$elm_css$Css$left(
+									$rtfeldman$elm_css$Css$px(-237)),
+									$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bg_gray_400,
+									$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$rounded_full
+								]))
+						]),
+					_List_fromArray(
+						[
+							$author$project$WheelofFortune$viewWheelCenter,
+							$author$project$WheelofFortune$viewWheelArrow,
+							$author$project$WheelofFortune$viewWheel(model)
+						]))),
+				rightWrap(
+				$author$project$WheelofFortune$viewFormAndStepClient(model))
+			]));
+};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_0 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'top', '0px'),
+			A2($rtfeldman$elm_css$Css$property, 'right', '0px'),
+			A2($rtfeldman$elm_css$Css$property, 'bottom', '0px'),
+			A2($rtfeldman$elm_css$Css$property, 'left', '0px')
+		]));
+var $rtfeldman$elm_css$Html$Styled$a = $rtfeldman$elm_css$Html$Styled$node('a');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bottom_4 = A2($rtfeldman$elm_css$Css$property, 'bottom', '1rem');
+var $rtfeldman$elm_css$Css$color = function (c) {
+	return A2($rtfeldman$elm_css$Css$property, 'color', c.value);
+};
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$no_underline = A2($rtfeldman$elm_css$Css$property, 'text-decoration', 'none');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$py_1 = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'padding-top', '0.25rem'),
+			A2($rtfeldman$elm_css$Css$property, 'padding-bottom', '0.25rem')
+		]));
+var $rtfeldman$elm_css$Css$rgba = F4(
+	function (r, g, b, alpha) {
+		return {
+			alpha: alpha,
+			blue: b,
+			color: $rtfeldman$elm_css$Css$Structure$Compatible,
+			green: g,
+			red: r,
+			value: A2(
+				$rtfeldman$elm_css$Css$cssFunction,
+				'rgba',
+				_Utils_ap(
+					A2(
+						$elm$core$List$map,
+						$elm$core$String$fromInt,
+						_List_fromArray(
+							[r, g, b])),
+					_List_fromArray(
+						[
+							$elm$core$String$fromFloat(alpha)
+						])))
+		};
+	});
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$right_4 = A2($rtfeldman$elm_css$Css$property, 'right', '1rem');
+var $rtfeldman$elm_css$Html$Styled$Attributes$target = $rtfeldman$elm_css$Html$Styled$Attributes$stringProperty('target');
+var $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_xs = $rtfeldman$elm_css$Css$batch(
+	_List_fromArray(
+		[
+			A2($rtfeldman$elm_css$Css$property, 'font-size', '0.75rem'),
+			A2($rtfeldman$elm_css$Css$property, 'line-height', '1rem')
+		]));
+var $author$project$Widget$widgetAbout = A2(
+	$rtfeldman$elm_css$Html$Styled$a,
+	_List_fromArray(
+		[
+			$rtfeldman$elm_css$Html$Styled$Attributes$href('#'),
+			$rtfeldman$elm_css$Html$Styled$Attributes$target('_blank'),
+			$rtfeldman$elm_css$Html$Styled$Attributes$css(
+			_List_fromArray(
+				[
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_xs,
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$right_4,
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$bottom_4,
+					$rtfeldman$elm_css$Css$zIndex(
+					$rtfeldman$elm_css$Css$int(500)),
+					$rtfeldman$elm_css$Css$color(
+					$rtfeldman$elm_css$Css$hex('#aaa')),
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$no_underline,
+					$rtfeldman$elm_css$Css$backgroundColor(
+					A4($rtfeldman$elm_css$Css$rgba, 255, 255, 255, 0.05)),
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$py_1,
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$px_2,
+					$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$rounded_full
+				]))
+		]),
+	_List_fromArray(
+		[
+			$rtfeldman$elm_css$Html$Styled$text('хочу такой виджет')
+		]));
+var $author$project$Widget$viewWidgetWrap = function (content) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Css$maxWidth(
+						$rtfeldman$elm_css$Css$px(660)),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$mx_auto,
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$absolute,
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_0,
+						$rtfeldman$elm_css$Css$backgroundColor(
+						$rtfeldman$elm_css$Css$hex('#262635')),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$text_white,
+						$rtfeldman$elm_css$Css$zIndex(
+						$rtfeldman$elm_css$Css$int(999999)),
+						$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$overflow_hidden
+					]))
+			]),
+		_List_fromArray(
+			[$author$project$Widget$widgetAbout, content]));
+};
+var $author$project$WheelofFortune$view = function (model) {
+	return A2(
+		$rtfeldman$elm_css$Html$Styled$div,
+		_List_fromArray(
+			[
+				$rtfeldman$elm_css$Html$Styled$Attributes$css(
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Css$fontFamilies(
+						_List_fromArray(
+							[
+								$rtfeldman$elm_css$Css$qt('IBM Plex Sans'),
+								function ($) {
+								return $.value;
+							}($rtfeldman$elm_css$Css$sansSerif)
+							])),
+						$rtfeldman$elm_css$Css$Global$descendants(
+						_List_fromArray(
+							[
+								A2(
+								$rtfeldman$elm_css$Css$Global$typeSelector,
+								'*',
+								_List_fromArray(
+									[$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$box_border, $matheus23$elm_default_tailwind_modules$Tailwind$Utilities$leading_none]))
+							]))
+					]))
+			]),
+		_List_fromArray(
+			[
+				A3(
+				$rtfeldman$elm_css$Html$Styled$node,
+				'link',
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$href('https://fonts.googleapis.com/css?family=IBM+Plex+Sans:500,600&display=swap'),
+						$rtfeldman$elm_css$Html$Styled$Attributes$rel('stylesheet')
+					]),
+				_List_Nil),
+				$author$project$WheelofFortune$viewBonusesGame(model),
+				A2(
+				$rtfeldman$elm_css$Html$Styled$div,
+				_List_fromArray(
+					[
+						$rtfeldman$elm_css$Html$Styled$Attributes$css(
+						_List_fromArray(
+							[
+								$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$fixed,
+								$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$inset_y_0,
+								$matheus23$elm_default_tailwind_modules$Tailwind$Utilities$w_full,
+								$rtfeldman$elm_css$Css$maxWidth(
+								$rtfeldman$elm_css$Css$px(660)),
+								$rtfeldman$elm_css$Css$Transitions$transition(
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Css$Transitions$left(1000),
+										A3($rtfeldman$elm_css$Css$Transitions$transform3, 500, 0, $rtfeldman$elm_css$Css$Transitions$easeInOut)
+									]))
+							])),
+						model.isOpen ? A2($rtfeldman$elm_css$Html$Styled$Attributes$style, 'left', '0') : A2($rtfeldman$elm_css$Html$Styled$Attributes$style, 'left', '-660px')
+					]),
+				_List_fromArray(
+					[
+						$author$project$Widget$viewWidgetWrap(
+						$author$project$WheelofFortune$viewWheelWrap(model))
+					]))
+			]));
 };
 var $author$project$WheelofFortune$main = $elm$browser$Browser$element(
 	{
@@ -13888,7 +15527,7 @@ var $author$project$WheelofFortune$main = $elm$browser$Browser$element(
 		view: A2($elm$core$Basics$composeR, $author$project$WheelofFortune$view, $rtfeldman$elm_css$Html$Styled$toUnstyled)
 	});
 _Platform_export({'WheelofFortune':{'init':$author$project$WheelofFortune$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"WheelofFortune.Msg","aliases":{},"unions":{"WheelofFortune.Msg":{"args":[],"tags":{"Run":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"WheelofFortune.Msg","aliases":{},"unions":{"WheelofFortune.Msg":{"args":[],"tags":{"StartFortune":[],"Message":[],"InputtedPhone":["String.String"],"Modal":["Basics.Bool"]}},"Basics.Bool":{"args":[],"tags":{"True":[],"False":[]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
 
   var app = Elm.WheelofFortune.init({ node: document.getElementById("elm") });
 }
